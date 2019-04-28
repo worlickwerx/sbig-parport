@@ -24,9 +24,7 @@
 #include <linux/parport.h>
 #include <asm/io.h>
 
-#include "ulptdrv.h"
 #include "ksbiglptmain.h"
-#include "ksbiglpt.h"
 
 #define SBIG_NO	3
 static struct {

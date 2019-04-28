@@ -7,174 +7,7 @@
 #ifndef _ULPTDRV_
 #define _ULPTDRV_
 
-#include "sbigudrv.h"
 
-/*
-
-	Low-Level Driver Commands
-
-*/
-#define SBIG_TYPE 40000
-#ifndef FILE_ANY_ACCESS
- #define FILE_ANY_ACCESS 0
-#endif
-#ifndef METHOD_BUFFERED
- #define METHOD_BUFFERED 0
-#endif
-
-/*
-
-	Control Codes
-
-	These control codes constitute the inteface
-    between the SBIG Universal Driver Library and the
-	Low-Level Windows LPT and Ethernet drivers.
-
-	Even Linux targets need these defines as they are
-	passed to the Ethernet Server.
-
-*/
-#ifndef CTL_CODE
-#define CTL_CODE( DeviceType, Function, Method, Access ) (                 \
-    ((DeviceType) << 16) | ((Access) << 14) | ((Function) << 2) | (Method))
-#endif
-
-// 1 - 5
-#define IOCTL_INIT_PORT CTL_CODE(	\
-              SBIG_TYPE,			\
-              2101,					\
-              METHOD_BUFFERED,		\
-              FILE_ANY_ACCESS)
-#define IOCTL_CAMERA_OUT CTL_CODE(	\
-              SBIG_TYPE,			\
-              2102,					\
-              METHOD_BUFFERED,		\
-              FILE_ANY_ACCESS)
-#define IOCTL_COM_MICRO CTL_CODE(	\
-              SBIG_TYPE,			\
-              2103,					\
-              METHOD_BUFFERED,		\
-              FILE_ANY_ACCESS)
-#define IOCTL_SEND_MICRO CTL_CODE(	\
-              SBIG_TYPE,			\
-              2104,					\
-              METHOD_BUFFERED,		\
-              FILE_ANY_ACCESS)
-#define IOCTL_GET_MICRO CTL_CODE(	\
-              SBIG_TYPE,			\
-              2105,					\
-              METHOD_BUFFERED,		\
-              FILE_ANY_ACCESS)
-
-// 6 - 10
-#define IOCTL_GET_PIXELS CTL_CODE(	\
-              SBIG_TYPE,			\
-              2106,					\
-              METHOD_BUFFERED,		\
-              FILE_ANY_ACCESS)
-#define IOCTL_VCLOCK_ICCD CTL_CODE(	\
-              SBIG_TYPE,			\
-              2107,					\
-              METHOD_BUFFERED,		\
-              FILE_ANY_ACCESS)
-#define IOCTL_VCLOCK_TCCD CTL_CODE(	\
-              SBIG_TYPE,			\
-              2108,					\
-              METHOD_BUFFERED,		\
-              FILE_ANY_ACCESS)
-#define IOCTL_VCLOCK_5CCD CTL_CODE(	\
-              SBIG_TYPE,			\
-              2109,					\
-              METHOD_BUFFERED,		\
-              FILE_ANY_ACCESS)
-#define IOCTL_DUMP_ILINES CTL_CODE(	\
-              SBIG_TYPE,			\
-              2110,					\
-              METHOD_BUFFERED,		\
-              FILE_ANY_ACCESS)
-
-// 11 - 15
-#define IOCTL_DUMP_TLINES CTL_CODE(	\
-              SBIG_TYPE,			\
-              2111,					\
-              METHOD_BUFFERED,		\
-              FILE_ANY_ACCESS)
-#define IOCTL_DUMP_5LINES CTL_CODE(	\
-              SBIG_TYPE,			\
-              2112,					\
-              METHOD_BUFFERED,		\
-              FILE_ANY_ACCESS)
-#define IOCTL_GET_US_TIMER CTL_CODE(\
-              SBIG_TYPE,			\
-              2113,					\
-              METHOD_BUFFERED,		\
-              FILE_ANY_ACCESS)
-#define IOCTL_SET_VDD CTL_CODE(	\
-              SBIG_TYPE,			\
-              2114,					\
-              METHOD_BUFFERED,		\
-              FILE_ANY_ACCESS)
-#define IOCTL_CLOCK_AD CTL_CODE(	\
-              SBIG_TYPE,			\
-              2115,					\
-              METHOD_BUFFERED,		\
-              FILE_ANY_ACCESS)
-
-// 16 - 20
-#define IOCTL_CLEAR_ICCD CTL_CODE(	\
-              SBIG_TYPE,			\
-              2116,					\
-              METHOD_BUFFERED,		\
-              FILE_ANY_ACCESS)
-#define IOCTL_CLEAR_TCCD CTL_CODE(	\
-              SBIG_TYPE,			\
-              2117,					\
-              METHOD_BUFFERED,		\
-              FILE_ANY_ACCESS)
-#define IOCTL_SET_IRQL CTL_CODE(	\
-              SBIG_TYPE,			\
-              2118,					\
-              METHOD_BUFFERED,		\
-              FILE_ANY_ACCESS)
-#define IOCTL_GET_IRQL CTL_CODE(	\
-              SBIG_TYPE,			\
-              2119,					\
-              METHOD_BUFFERED,		\
-              FILE_ANY_ACCESS)
-#define IOCTL_GET_DRIVER_INFO CTL_CODE(	\
-              SBIG_TYPE,			\
-              2120,					\
-              METHOD_BUFFERED,		\
-              FILE_ANY_ACCESS)
-
-// 21 - 25
-#define IOCTL_GET_AREA CTL_CODE(	\
-              SBIG_TYPE,			\
-              2121,					\
-              METHOD_BUFFERED,		\
-              FILE_ANY_ACCESS)
-#define IOCTL_SET_PORT_ADDRESS CTL_CODE(\
-              SBIG_TYPE,			\
-              2122,					\
-              METHOD_BUFFERED,		\
-              FILE_ANY_ACCESS)
-#define IOCTL_SHUT_DOWN_SERVER CTL_CODE(\
-              SBIG_TYPE,			\
-              2123,					\
-              METHOD_BUFFERED,		\
-              FILE_ANY_ACCESS)
-
-/*
-
-	Linux Driver Control Defines
-
-	Note that these had to be renamed from IOCTL_XX to
-    LIOCTL_XXX since the names conflicted with the predefined
-	Windows IOCTLs and both need to exist under Linux to be
-	compatible with the Ethernet server tool.
-
-*/
-#if TARGET == ENV_LINUX
  #define IOCTL_BASE   0xbb
 
  #define LIOCTL_GET_JIFFIES      _IOWR (IOCTL_BASE, 1,  char *)
@@ -206,7 +39,7 @@
  #define LIOCTL_SUBMIT_PIXEL_IN_URB    _IOWR (IOCTL_BASE, 34, char *)
  #define LIOCTL_GET_PIXEL_IN_URB       _IOWR (IOCTL_BASE, 35, char *)
  #define LIOCTL_GET_PIXEL_BLOCK        _IOWR (IOCTL_BASE, 36, char *)
-#endif /* #if TARGET == ENV_LINUX */
+
 
 
 /*
@@ -263,16 +96,12 @@ typedef struct {
 	short st237A;
 	short height;
 } IOC_GET_AREA_PARAMS;
-typedef struct {
-	short baseAddress;
-} IOC_SET_PORT_ADDRESS_PARAMS;
 
 /*
 
 	Linux Only Structs
 
 */
-#if TARGET == ENV_LINUX
 typedef struct{
 	unsigned char  *pBuffer;
 	unsigned long  length;
@@ -286,6 +115,16 @@ typedef struct{
 	unsigned short  raiseIt;
 	unsigned short  vddWasLow;
 } IocSetVdd;
-#endif /* #if TARGET == ENV_LINUX */
+
+typedef struct{
+ unsigned char  reg;
+ unsigned char  value;
+}LinuxCameraOutParams;
+
+typedef struct{
+ IOC_GET_AREA_PARAMS  gap;
+ unsigned short *dest;
+ unsigned long  length;
+}LinuxGetAreaParams;
 
 #endif
