@@ -56,7 +56,7 @@ static uint8_t sbig_inb(unsigned int minor)
 static int sbig_open(struct inode *inode, struct file *file)
 {
 	unsigned int minor = MINOR(inode->i_rdev);
-	struct private_data *pd = (struct private_data *)(file->private_data);
+	struct sbig_client *pd = file->private_data;
 	int rc = 0;
 
 	if (minor >= sbig_count) {
@@ -96,7 +96,7 @@ out:
 
 static int sbig_release(struct inode *inode, struct file *file)
 {
-	struct private_data *pd = (struct private_data *)(file->private_data);
+	struct sbig_client *pd = file->private_data;
 	if (pd) {
 		if (pd->buffer)
 			kfree(pd->buffer);

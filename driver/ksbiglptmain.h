@@ -10,7 +10,7 @@
 #define LDEFAULT_BUFFER_SIZE 4096
 
 //========================================================================
-struct private_data {
+struct sbig_client {
 	unsigned long flags;
 	unsigned long value;
 	unsigned char control_out;

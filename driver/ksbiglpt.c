@@ -173,7 +173,7 @@ unsigned short gLastError;
 // KLptCameraOut
 // Write data to one of the Camera Registers.
 //========================================================================
-void KLptCameraOut(struct private_data *pd, unsigned char reg,
+void KLptCameraOut(struct sbig_client *pd, unsigned char reg,
 		   unsigned char val)
 {
 	pd->pp_outb((unsigned char)(reg + val), pd->minor);
@@ -192,7 +192,7 @@ void KLptCameraOut(struct private_data *pd, unsigned char reg,
 // Reset the handshake line to the microcontroller to the idle state
 // and delay long enough to ensure the systems are in sync.
 //========================================================================
-void KLptForceMicroIdle(struct private_data *pd)
+void KLptForceMicroIdle(struct sbig_client *pd)
 {
 	// all clocks low
 	KLptCameraOut(pd, CONTROL_OUT, 0);
@@ -202,7 +202,7 @@ void KLptForceMicroIdle(struct private_data *pd)
 // KLptCameraOutWraper
 // Write data to one of the Camera Registers.
 //========================================================================
-int KLptCameraOutWrapper(struct private_data *pd,
+int KLptCameraOutWrapper(struct sbig_client *pd,
 			 struct linux_camera_out_params *arg)
 {
 	int status;
@@ -224,7 +224,7 @@ int KLptCameraOutWrapper(struct private_data *pd,
 // KLptCameraIn
 // Read data from one of the Camera Registers.
 //========================================================================
-unsigned char KLptCameraIn(struct private_data *pd, unsigned char reg)
+unsigned char KLptCameraIn(struct sbig_client *pd, unsigned char reg)
 {
 	pd->pp_outb(reg, pd->minor);
 	return (pd->pp_inb(pd->minor) >> 3);
@@ -234,7 +234,7 @@ unsigned char KLptCameraIn(struct private_data *pd, unsigned char reg)
 // Return TRUE if the next nibble can be sent or received at the
 // microcontroller.
 //========================================================================
-unsigned char KLptMicroStat(struct private_data *pd)
+unsigned char KLptMicroStat(struct sbig_client *pd)
 {
 	unsigned char val;
 
@@ -250,7 +250,7 @@ unsigned char KLptMicroStat(struct private_data *pd)
 // Read the data from the microcontroller and toggle the HSO line.
 // This assumes KLptMicroStat has been called and returned TRUE.
 //========================================================================
-unsigned char KLptMicroIn(struct private_data *pd, unsigned char ackIt)
+unsigned char KLptMicroIn(struct sbig_client *pd, unsigned char ackIt)
 {
 	unsigned char val;
 
@@ -268,7 +268,7 @@ unsigned char KLptMicroIn(struct private_data *pd, unsigned char ackIt)
 // Send data to the microcontroller and toggle the HSO line.
 // This assumes MicroStat has been called and returned TRUE.
 //========================================================================
-void KLptMicroOut(struct private_data *pd, unsigned char val)
+void KLptMicroOut(struct sbig_client *pd, unsigned char val)
 {
 	KLptCameraOut(pd, MICRO_OUT, val);
 	KLptCameraOut(pd, CONTROL_OUT, (unsigned char)(pd->control_out ^ HSO));
@@ -277,7 +277,7 @@ void KLptMicroOut(struct private_data *pd, unsigned char val)
 // KLptReadyToRx
 // Indicate to micro that we're ready to receive data.
 //========================================================================
-void KLptReadyToRx(struct private_data *pd)
+void KLptReadyToRx(struct sbig_client *pd)
 {
 	KLptMicroOut(pd, 0); // let micro know we're ready to rx
 }
@@ -285,7 +285,7 @@ void KLptReadyToRx(struct private_data *pd)
 // KLptSendMicroBlock
 // Send a block of data to the micro.
 //========================================================================
-int KLptSendMicroBlock(struct private_data *pd, struct linux_micro_block *arg)
+int KLptSendMicroBlock(struct sbig_client *pd, struct linux_micro_block *arg)
 {
 	int status;
 	short i, nibbleLen;
@@ -351,7 +351,7 @@ int KLptSendMicroBlock(struct private_data *pd, struct linux_micro_block *arg)
 // KLptGetMicroBlock
 // Get a block of bytes (nibbles) from the camera on the parallel port.
 //========================================================================
-int KLptGetMicroBlock(struct private_data *pd,
+int KLptGetMicroBlock(struct sbig_client *pd,
 		      struct linux_micro_block *arg)
 {
 	int status;
@@ -467,7 +467,7 @@ int KLptGetMicroBlock(struct private_data *pd,
 //========================================================================
 // KLptSetVdd
 //========================================================================
-int KLptSetVdd(struct private_data *pd, struct ioc_set_vdd *arg)
+int KLptSetVdd(struct sbig_client *pd, struct ioc_set_vdd *arg)
 {
 	struct ioc_set_vdd svdd;
 
@@ -498,7 +498,7 @@ int KLptSetVdd(struct private_data *pd, struct ioc_set_vdd *arg)
 // KDisable
 // Disable interrupts.
 //========================================================================
-void KDisable(struct private_data *pd)
+void KDisable(struct sbig_client *pd)
 {
 	//__save_flags(pd->flags);
 	// we should disable only certain types of interrupts,
@@ -509,7 +509,7 @@ void KDisable(struct private_data *pd)
 // KEnable
 // Enable interrupts.
 //========================================================================
-void KEnable(struct private_data *pd)
+void KEnable(struct sbig_client *pd)
 {
 	//__restore_flags(pd->flags);
 }
@@ -517,7 +517,7 @@ void KEnable(struct private_data *pd)
 // KLptIoDelay
 // Delay a passed number of IO instructions.
 //========================================================================
-void KLptIoDelay(struct private_data *pd, short i)
+void KLptIoDelay(struct sbig_client *pd, short i)
 {
 	for (; i > 0; i--) {
 		pd->pp_inb(pd->minor);
@@ -527,7 +527,7 @@ void KLptIoDelay(struct private_data *pd, short i)
 // KLptWaitForPLD
 // Wait till the PLD signals complete.
 //========================================================================
-int KLptWaitForPLD(struct private_data *pd)
+int KLptWaitForPLD(struct sbig_client *pd)
 {
 	short t0 = 0;
 
@@ -543,7 +543,7 @@ int KLptWaitForPLD(struct private_data *pd)
 // KLptWaitForAD
 // Wait till the AD signals complete.
 //========================================================================
-int KLptWaitForAD(struct private_data *pd)
+int KLptWaitForAD(struct sbig_client *pd)
 {
 	short t0 = 0;
 
@@ -560,7 +560,7 @@ int KLptWaitForAD(struct private_data *pd)
 // KLptHClear
 // Clear block of 10 pixels the number of times passed.
 //========================================================================
-int KLptHClear(struct private_data *pd, short times)
+int KLptHClear(struct sbig_client *pd, short times)
 {
 	int status;
 
@@ -580,7 +580,7 @@ int KLptHClear(struct private_data *pd, short times)
 // KLptRVClockST5CCCD
 // Vertically clock the 255 CCD and prepare it for a line readout.
 //========================================================================
-int KLptRVClockST5CCCD(struct private_data *pd,
+int KLptRVClockST5CCCD(struct sbig_client *pd,
 		       struct ioc_vclock_ccd_params *pParams)
 {
 	short i, onVertBin = pParams->onVertBin;
@@ -606,7 +606,7 @@ int KLptRVClockST5CCCD(struct private_data *pd,
 // KLptRVClockTrackingCCD
 // Vertically clock the Tracking CCD and prepare it for a line readout.
 //========================================================================
-int KLptRVClockTrackingCCD(struct private_data *pd,
+int KLptRVClockTrackingCCD(struct sbig_client *pd,
 			   struct ioc_vclock_ccd_params *pParams)
 {
 	short i, onVertBin = pParams->onVertBin;
@@ -643,7 +643,7 @@ int KLptRVClockTrackingCCD(struct private_data *pd,
 // VClockImaginCCD
 // Clock the Imaging CCD vertically one time.
 //========================================================================
-int KLptVClockImagingCCD(struct private_data *pd, enum camera_type cameraID,
+int KLptVClockImagingCCD(struct sbig_client *pd, enum camera_type cameraID,
 			 unsigned char baseClks, short hClears)
 {
 	int status = CE_NO_ERROR;
@@ -699,7 +699,7 @@ int KLptVClockImagingCCD(struct private_data *pd, enum camera_type cameraID,
 // Clear the passed number of pixels in the imaging CCD. Do this in
 // groups of CLEAR_BLOCK with the readout PAL then do the remainder.
 //========================================================================
-int KLptBlockClearPixels(struct private_data *pd, enum camera_type cameraID,
+int KLptBlockClearPixels(struct sbig_client *pd, enum camera_type cameraID,
 			 enum ccd_request ccd, short len, short readoutMode)
 {
 	int status = CE_NO_ERROR;
@@ -759,7 +759,7 @@ int KLptBlockClearPixels(struct private_data *pd, enum camera_type cameraID,
 // KLptRVClockImagingCCD
 // Vertically clock the Imaging CCD and prepare it for a line readout.
 //========================================================================
-int KLptRVClockImagingCCD(struct private_data *pd,
+int KLptRVClockImagingCCD(struct sbig_client *pd,
 			  struct ioc_vclock_ccd_params *pParams)
 {
 	int status = CE_NO_ERROR;
@@ -789,7 +789,7 @@ int KLptRVClockImagingCCD(struct private_data *pd,
 // Get a row of pixels, discarding any on the left, digitizing len,
 // discarding on the right.
 //========================================================================
-int KLptGetPixels(struct private_data *pd, struct linux_get_pixels_params *arg)
+int KLptGetPixels(struct sbig_client *pd, struct linux_get_pixels_params *arg)
 {
 	int status;
 	struct linux_get_pixels_params lgpp;
@@ -925,7 +925,7 @@ int KLptGetPixels(struct private_data *pd, struct linux_get_pixels_params *arg)
 // KLptGetArea
 // Get one or more rows of pixel data.
 //========================================================================
-int KLptGetArea(struct private_data *pd, struct linux_get_area_params *arg)
+int KLptGetArea(struct sbig_client *pd, struct linux_get_area_params *arg)
 {
 	int status = CE_NO_ERROR;
 	struct linux_get_area_params lgap;
@@ -1080,7 +1080,7 @@ int KLptGetArea(struct private_data *pd, struct linux_get_area_params *arg)
 // The width is the width of the CCD unbinned and the	len is the number
 // of bined rows to dump.
 //========================================================================
-int KLptDumpImagingLines(struct private_data *pd,
+int KLptDumpImagingLines(struct sbig_client *pd,
 			 struct ioc_dump_lines_params *arg)
 {
 	int status;
@@ -1150,7 +1150,7 @@ int KLptDumpImagingLines(struct private_data *pd,
 // The width is the width of the CCD unbinned and the	len is the number
 // of bined rows to dump.
 //========================================================================
-int KLptDumpTrackingLines(struct private_data *pd,
+int KLptDumpTrackingLines(struct sbig_client *pd,
 			  struct ioc_dump_lines_params *arg)
 {
 	int status;
@@ -1206,7 +1206,7 @@ int KLptDumpTrackingLines(struct private_data *pd,
 // The width is the width of the CCD unbinned and the	len is the number
 // of bined rows to dump.
 //========================================================================
-int KLptDumpST5CLines(struct private_data *pd,
+int KLptDumpST5CLines(struct sbig_client *pd,
 		      struct ioc_dump_lines_params *arg)
 {
 	int status;
@@ -1252,7 +1252,7 @@ int KLptDumpST5CLines(struct private_data *pd,
 // KLptClockAD
 // Clock the AD the number of times passed.
 //========================================================================
-int KLptClockAD(struct private_data *pd, short *arg)
+int KLptClockAD(struct sbig_client *pd, short *arg)
 {
 	int status;
 	short len;
@@ -1288,7 +1288,7 @@ int KLptClockAD(struct private_data *pd, short *arg)
 // Do a fast clear of the imaging array by doing vertical shifts and
 // only clearing CLEAR_BLOCK pixels per line.
 //========================================================================
-int KLptClearImagingArray(struct private_data *pd,
+int KLptClearImagingArray(struct sbig_client *pd,
 			  struct ioc_clear_ccd_params *arg)
 {
 	int status = CE_NO_ERROR;
@@ -1334,7 +1334,7 @@ int KLptClearImagingArray(struct private_data *pd,
 // Do a fast clear of the tracking array by doing vertical shifts and
 // only clearing CLEAR_BLOCK pixels per line.
 //========================================================================
-int KLptClearTrackingArray(struct private_data *pd,
+int KLptClearTrackingArray(struct sbig_client *pd,
 			   struct ioc_clear_ccd_params *arg)
 {
 	int status = CE_NO_ERROR;
@@ -1408,7 +1408,7 @@ int KLptGetDriverInfo(struct driver_info_results *results)
 	return (CE_NO_ERROR);
 }
 //========================================================================
-int KLptSetBufferSize(struct private_data *pd, spinlock_t *lock,
+int KLptSetBufferSize(struct sbig_client *pd, spinlock_t *lock,
 		      unsigned short *new_size)
 {
 	int status = CE_NO_ERROR;
@@ -1452,7 +1452,7 @@ int KLptSetBufferSize(struct private_data *pd, spinlock_t *lock,
 	return (status);
 }
 //========================================================================
-int KLptGetBufferSize(struct private_data *pd)
+int KLptGetBufferSize(struct sbig_client *pd)
 {
 	enum par_error status = pd->buffer_size;
 
@@ -1505,7 +1505,7 @@ long KDevIoctl(struct file *filp, unsigned int cmd, unsigned long arg,
 	       spinlock_t *spin_lock)
 {
 	int status = CE_NO_ERROR;
-	struct private_data *pd = (struct private_data *)(filp->private_data);
+	struct sbig_client *pd = filp->private_data;
 
 	if (_IOC_TYPE(cmd) != IOCTL_BASE) {
 		printk(KERN_ERR "%s() : error: IOCTL base %d, must be %d\n",
