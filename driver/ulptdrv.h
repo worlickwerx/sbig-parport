@@ -174,7 +174,6 @@
 	compatible with the Ethernet server tool.
 
 */
-#if TARGET == ENV_LINUX
  #define IOCTL_BASE   0xbb
 
  #define LIOCTL_GET_JIFFIES      _IOWR (IOCTL_BASE, 1,  char *)
@@ -206,7 +205,6 @@
  #define LIOCTL_SUBMIT_PIXEL_IN_URB    _IOWR (IOCTL_BASE, 34, char *)
  #define LIOCTL_GET_PIXEL_IN_URB       _IOWR (IOCTL_BASE, 35, char *)
  #define LIOCTL_GET_PIXEL_BLOCK        _IOWR (IOCTL_BASE, 36, char *)
-#endif /* #if TARGET == ENV_LINUX */
 
 
 /*
@@ -272,7 +270,6 @@ typedef struct {
 	Linux Only Structs
 
 */
-#if TARGET == ENV_LINUX
 typedef struct{
 	unsigned char  *pBuffer;
 	unsigned long  length;
@@ -286,6 +283,5 @@ typedef struct{
 	unsigned short  raiseIt;
 	unsigned short  vddWasLow;
 } IocSetVdd;
-#endif /* #if TARGET == ENV_LINUX */
 
 #endif

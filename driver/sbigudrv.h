@@ -24,22 +24,6 @@
 
 /*
 
-	SBIG Specific Code
-
-*/
-#ifndef TARGET
- #define ENV_WIN		1				/* Target for Windows environment */
- #define ENV_WINVXD		2				/* SBIG Use Only, Win 9X VXD */
- #define ENV_WINSYS		3				/* SBIG Use Only, Win NT SYS */
- #define ENV_ESRVJK		4				/* SBIG Use Only, Ethernet Remote */
- #define ENV_ESRVWIN	5				/* SBIG Use Only, Ethernet Remote */
- #define ENV_MACOSX     6				/* SBIG Use Only, Mac OSX */
- #define ENV_LINUX		7				/* SBIG Use Only, Linux */
- #define TARGET			ENV_LINUX       /* Set for your target */
-#endif
-
-/*
-
 	Enumerated Constants
 
 	Note that the various constants are declared here as enums
@@ -309,12 +293,7 @@ typedef enum { BITI_PS_LOW, BITO_IO1, BITO_IO2, BITI_IO3, BITO_FPGA_WE } BITIO_N
 
 */
 /* Force 8 Byte Struct Align */
-#if TARGET == ENV_MACOSX || TARGET == ENV_LINUX
  #pragma pack(push,8)
-#else
- #pragma pack(push)
- #pragma pack(8)
-#endif
 
 typedef struct {
 	unsigned short /* CCD_REQUEST */ ccd;
@@ -672,19 +651,11 @@ typedef struct {
 	read them and fill them in respectively.
 
 */
-#if TARGET == ENV_WIN
-  #ifdef __cplusplus
-  	extern "C" short __stdcall SBIGUnivDrvCommand(short command, void *Params, void *Results);
-  #else
-	extern short __stdcall SBIGUnivDrvCommand(short command, void *Params, void *Results);
-  #endif
-#else
   #ifdef __cplusplus
   	extern "C" short SBIGUnivDrvCommand(short command, void *Params, void *Results);
   #else
     extern short SBIGUnivDrvCommand(short command, void *Params, void *Results);
   #endif
-#endif
 
 #endif /* ifndef _PARDRV_ */
 

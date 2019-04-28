@@ -7,10 +7,6 @@
 #ifndef _PAROPTS_
 #define _PAROPTS_
 
-#ifndef _LPARDRV_
-#include "lpardrv.h"
-#endif
-
 #ifndef _PARMICRO_
 #include "parmicro.h"
 #endif
@@ -23,51 +19,19 @@
   #include "udrvsbigonly.h"
 #endif
 
-#if TARGET == ENV_WIN
- #include "windows.h"
- #ifndef PARUSBJ
-  #include "parusbj.h"
- #endif
-#endif
-
-#if TARGET != ENV_LINUX
-#include <time.h>
-#endif
-
-#if TARGET == ENV_MACOSX || TARGET == ENV_LINUX
  typedef long HANDLE;
  typedef long USBDRIVER_HANDLE;
-#endif
 
-#if TARGET == ENV_MACOSX
- #include <CoreFoundation/CoreFoundation.h>
- #include <IOKit/IOKitLib.h>
- #include <IOKit/IOCFPlugIn.h>
- #include <IOKit/usb/IOUSBLib.h>
-#endif
-
-#if TARGET == ENV_MACOSX || TARGET == ENV_LINUX
  #define enable()
  #define disable()
  #define closesocket(a) close(a)
  #define SOCKET_ERROR -1
  #define INVALID_SOCKET -1
  #define IP_ADDRESS_STR_LENGTH 16
-#endif
 
 #define DRIVER_VERSION		0x0435	// BCD version
 #define DRIVER_STRING		"4.35"
-#if TARGET == ENV_WIN
-	#define DRIVER_SUFFIX "WU"
-#elif TARGET == ENV_WINVXD
-	#define DRIVER_SUFFIX "WVXD"
-#elif TARGET == ENV_MACOSX
-    #define DRIVER_SUFFIX "M-OSX"
-#elif TARGET == ENV_LINUX
     #define DRIVER_SUFFIX "-LINUX"
-#else
-	#define DRIVER_SUFFIX "X"
-#endif
 #define SIMULATE_CAMERA 		0					// set to 1 to simulate a camera/video
 #define CAMERA_SIMULATED		STL_CAMERA			// set to the type of camera desired
 #define STL_CAMERA_SIMULATED	STL_1001_CAMERA		// for ST-L camera this sub-type
@@ -81,10 +45,6 @@
 
 #define USB_GA_REV				5	/* default target Gate Array Rev */
 #define INVALID_USB_DEVICE		0xFFFF
-
-#if TARGET != ENV_LINUX
- #pragma warning( disable : 4761 )	/* disable size mismatch warnings */
-#endif
 
 typedef enum {EXP_IDLE, EXP_IN_PROGRESS=2, EXP_COMPLETE } EXPOSURE_STATE;
 // typedef enum {IMAGING_CCD, TRACKING_CCD } CCD;
@@ -157,36 +117,15 @@ typedef struct {
 
 	unsigned short debugMsgOption;
 
-#if TARGET != ENV_MACOSX
 	HANDLE lptHandle;					/* = INVALID_HANDLE_VALUE; */
-#endif
 	HANDLE ethHandle;					/* = INVALID_HANDLE_VALUE; */
-#if TARGET == ENV_WIN
-	HANDLE usbeHandle;					/* = NULL; */
-	HANDLE usbiRHandle;
-	HANDLE usbiWHandle;
-	HANDLE usbiPixelRHandle;
-	USBDRIVER_HANDLE hUSBDRIVER;		/* = 0; */
-#endif
-#if TARGET == ENV_MACOSX
-    IOUSBDeviceInterface **usbmDevice;
-    IOUSBInterfaceInterface **usbmInterface;
-    int	usbmInPipeRef;
-    int	usbmOutPipeRef;
-#endif
-#if TARGET == ENV_LINUX
 	HANDLE usblHandle;
-#endif
 	FifoInfo fifoInfo;
 	MY_LOGICAL m_bNeedCleanup;
 	ENUM_USB_DRIVER usbDriver;
 	unsigned short thisUSBDevice;
 
-#if TARGET == ENV_MACOSX || TARGET == ENV_LINUX
 	int m_cliSocket;					/* = INVALID_SOCKET; */
-#else    
-	SOCKET m_cliSocket;					/* = INVALID_SOCKET; */
-#endif
 } DLL_GLOBALS, *PDLL_GLOBALS;
 
 /* Driver Control Parameters */

@@ -11,15 +11,6 @@
 
 /*
 
-	External Includes
-
-*/
-#ifndef _LPARDRV_
-#include "lpardrv.h"
-#endif
-
-/*
-
 	Constants
 
 */
@@ -241,17 +232,5 @@ PAR_ERROR MicroInitPixelReadout(CAMERA_TYPE cameraID, CCD_REQUEST ccd,
 								short right, short height, short horzBin, short vertBin);
 extern PAR_ERROR MicroGetPixels(CAMERA_TYPE cameraID, unsigned short *dest);
 extern PAR_ERROR BitIOCommand(BitIOParams *pParams, BitIOResults *pResults);
-
-/*
-
-	Windows DLL Exports
-
-*/
-#if TARGET == ENV_WIN
- extern PAR_ERROR __stdcall MicroCommand2(MICRO_COMMAND command, CAMERA_TYPE camera,
-	void *txDataPtr, void *rxDataPtr);
- extern PAR_ERROR __stdcall GetEEPROM2(CAMERA_TYPE camera, EEPROMContents *eePtr);
- extern PAR_ERROR __stdcall PutEEPROM2(CAMERA_TYPE camera, EEPROMContents *eePtr);
-#endif
 
 #endif

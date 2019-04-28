@@ -13,37 +13,7 @@
 #define GENERIC_VERSION_BCD		0x0400						/* Generic version in BCD */
 #define GENERIC_VERSION_STRING  "SBIGULPT.XXX Ver 4.0G"		/* Generic version string */
 
-#if TARGET == ENV_WINSYS
-typedef BOOLEAN (*PPARALLEL_TRY_ALLOCATE_ROUTINE)(IN PVOID TryAllocateContext);
-typedef VOID    (*PPARALLEL_FREE_ROUTINE)(IN PVOID FreeContext);
-typedef ULONG   (*PPARALLEL_QUERY_WAITERS_ROUTINE)(IN PVOID QueryAllocsContext);
-#endif
-
 typedef struct _DEVICE_EXTENSION {
-#if TARGET == ENV_WINSYS
-        // Points to the device object that contains this device extension.
-        PDEVICE_OBJECT DeviceObject;
-        // Points to the port device object that this class device is connected to.
-        PDEVICE_OBJECT PortDeviceObject;
-        // Work queue.  Manipulate with cancel spin lock.
-        LIST_ENTRY WorkQueue;
-        PIRP       CurrentIrp;
-        // Holds the result of the get parallel port info request to the port driver.
-        PHYSICAL_ADDRESS                PhysicalBaseAddress;
-        ULONG                           Span;
-        PPARALLEL_TRY_ALLOCATE_ROUTINE  TryAllocatePort;
-        PPARALLEL_FREE_ROUTINE          FreePort;
-        PPARALLEL_QUERY_WAITERS_ROUTINE QueryNumWaiters;
-        PVOID                           FreePortContext;
-        // Records whether we actually created the symbolic link name
-        // at driver load time and the symbolic link itself.  If we didn't
-        // create it, we won't try to destroy it when we unload.
-        BOOLEAN        CreatedSymbolicLink;
-        UNICODE_STRING SymbolicLinkName;
-
-        //CCD local data are stored here:
-        ULONG                       t1, t5, t60, t86400;
-#endif
         //CCD local data are stored here:
         SetIRQLParams               NewIrql, OldIrql;
         PUCHAR                      BaseAddress;
