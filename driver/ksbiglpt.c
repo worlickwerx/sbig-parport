@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: UNLICENSED
+
 //========================================================================
 // File name  : ksbiglpt.c
 // Description: Contains the kernel LPT code.

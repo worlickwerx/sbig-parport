@@ -1,3 +1,5 @@
+/* SPDX-License-Identifier: GPL-2.0-or-later */
+
 #ifndef _KSBIGLPTMAIN_H_
 #define _KSBIGLPTMAIN_H_
 

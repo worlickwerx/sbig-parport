@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: GPL-2.0-or-later
+
 /* SBIG astronomy camera parallel port driver
  *
  * Replacement driver mainline developed on Linux 4.10, supercedes mainline
