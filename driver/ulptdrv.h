@@ -1,11 +1,5 @@
 /* SPDX-License-Identifier: UNLICENSED */
 
-/*
-
-	ulptdrv.h - Contains the typedefs and prototypes for the
-				low-level LPT drivers for the Universal Driver.
-
-*/
 #ifndef _ULPTDRV_
 #define _ULPTDRV_
 
@@ -41,14 +35,6 @@
 #define LIOCTL_GET_PIXEL_IN_URB _IOWR(IOCTL_BASE, 35, char *)
 #define LIOCTL_GET_PIXEL_BLOCK _IOWR(IOCTL_BASE, 36, char *)
 
-/*
-
-	Individual Command Struct Defines
-
-	Note: Don't use enums as types because
-		  Windows C compile makes them 4 bytes.
-
-*/
 typedef struct {
 	unsigned char reg;
 	unsigned char value;
@@ -96,11 +82,6 @@ typedef struct {
 	short height;
 } IOC_GET_AREA_PARAMS;
 
-/*
-
-	Linux Only Structs
-
-*/
 typedef struct {
 	unsigned char *pBuffer;
 	unsigned long length;
