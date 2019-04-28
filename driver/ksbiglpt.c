@@ -122,16 +122,16 @@ typedef enum {
 // Assumes AD3 is addressed coming into it and leaves
 // with AD0 address going out.
 
-#define K_LPT_READ_AD16(pd, u)                                                 \
-	/*	pd->pp_outb(AD3_MDI, pd->minor); */                                 \
-	u = (unsigned short)(pd->pp_inb(pd->minor) & 0x78) << 9;               \
-	pd->pp_outb(AD2, pd->minor);                                           \
-	u += (unsigned short)(pd->pp_inb(pd->minor) & 0x78) << 5;              \
-	pd->pp_outb(AD1, pd->minor);                                           \
-	u += (unsigned short)(pd->pp_inb(pd->minor) & 0x78) << 1;              \
-	pd->pp_outb(AD0, pd->minor);                                           \
-	u += (unsigned short)(pd->pp_inb(pd->minor) & 0x78) >> 3
-//-----------------------------------------------------------------------------
+#define K_LPT_READ_AD16(pd, u) do { \
+	/*pd->pp_outb(AD3_MDI, pd->minor); */ \
+	u = (unsigned short)(pd->pp_inb(pd->minor) & 0x78) << 9; \
+	pd->pp_outb(AD2, pd->minor); \
+	u += (unsigned short)(pd->pp_inb(pd->minor) & 0x78) << 5; \
+	pd->pp_outb(AD1, pd->minor); \
+	u += (unsigned short)(pd->pp_inb(pd->minor) & 0x78) << 1; \
+	pd->pp_outb(AD0, pd->minor); \
+	u += (unsigned short)(pd->pp_inb(pd->minor) & 0x78) >> 3; \
+} while (0)
 
 int KLptGetDriverInfo(GetDriverInfoResults0 *);
 int KLptGetJiffies(unsigned long *);
