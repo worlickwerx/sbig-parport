@@ -26,10 +26,10 @@
 
 #include "ksbiglptmain.h"
 
-#define SBIG_NO	3
+#define SBIG_NO 3
 static struct {
-	struct pardevice 	*dev;
-	spinlock_t  		spinlock;
+	struct pardevice *dev;
+	spinlock_t spinlock;
 } sbig_table[SBIG_NO];
 static unsigned int sbig_count = 0;
 
@@ -37,18 +37,18 @@ static dev_t sbig_dev;
 static struct class *sbig_class;
 static struct cdev sbig_cdev;
 
-static void sbig_outb (uint8_t data, unsigned int minor)
+static void sbig_outb(uint8_t data, unsigned int minor)
 {
 	struct parport *port = sbig_table[minor].dev->port;
 
 	port->ops->write_data(port, data);
 }
 
-static uint8_t sbig_inb (unsigned int minor)
+static uint8_t sbig_inb(unsigned int minor)
 {
 	struct parport *port = sbig_table[minor].dev->port;
 
-	return port->ops->read_status (port);
+	return port->ops->read_status(port);
 }
 
 static int sbig_open(struct inode *inode, struct file *file)
@@ -61,7 +61,7 @@ static int sbig_open(struct inode *inode, struct file *file)
 		rc = -ENODEV;
 		goto out;
 	}
-	spin_lock (&sbig_table[minor].spinlock);
+	spin_lock(&sbig_table[minor].spinlock);
 	if (pd) {
 		rc = -EBUSY;
 		goto out_unlock;
@@ -71,7 +71,7 @@ static int sbig_open(struct inode *inode, struct file *file)
 		goto out_unlock;
 	}
 	if (!(pd->buffer = kmalloc(LDEFAULT_BUFFER_SIZE, GFP_KERNEL))) {
-		kfree (pd);
+		kfree(pd);
 		rc = -ENOMEM;
 		goto out_unlock;
 	}
@@ -87,7 +87,7 @@ static int sbig_open(struct inode *inode, struct file *file)
 	pd->minor = minor;
 	file->private_data = pd;
 out_unlock:
-	spin_unlock (&sbig_table[minor].spinlock);
+	spin_unlock(&sbig_table[minor].spinlock);
 out:
 	return rc;
 }
@@ -111,40 +111,40 @@ static long sbig_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
 	return KDevIoctl(file, cmd, arg, &sbig_table[minor].spinlock);
 }
 
-static void sbig_attach (struct parport *port)
+static void sbig_attach(struct parport *port)
 {
 	int nr = 0 + sbig_count;
 
 	if (!(port->modes & PARPORT_MODE_PCSPP)) {
 		printk(KERN_INFO "sbiglpt: ignoring %s - no SPP capability\n",
-			port->name);
+		       port->name);
 		return;
 	}
 	if (nr == SBIG_NO) {
 		printk(KERN_INFO "sbiglpt: ignoring %s - max %d reached\n",
-			port->name, SBIG_NO);
+		       port->name, SBIG_NO);
 		return;
 	}
-	sbig_table[nr].dev = parport_register_device(port, "sbiglpt",
-						     NULL, NULL, NULL, 0, NULL);
+	sbig_table[nr].dev = parport_register_device(port, "sbiglpt", NULL,
+						     NULL, NULL, 0, NULL);
 	if (sbig_table[nr].dev == NULL) {
 		printk(KERN_ERR "sbiglpt%d: parport_register_device failed\n",
-			nr);
+		       nr);
 		return;
 	}
-	if (parport_claim (sbig_table[nr].dev)) {
+	if (parport_claim(sbig_table[nr].dev)) {
 		parport_unregister_device(sbig_table[nr].dev);
 		printk(KERN_ERR "sbiglpt%d: parport_claim failed\n", nr);
 		return;
 	}
-	device_create(sbig_class, port->dev, MKDEV (MAJOR(sbig_dev), nr),
-		      NULL, "sbiglpt%d", nr);
+	device_create(sbig_class, port->dev, MKDEV(MAJOR(sbig_dev), nr), NULL,
+		      "sbiglpt%d", nr);
 	spin_lock_init(&sbig_table[nr].spinlock);
 	sbig_count++;
 	printk(KERN_INFO "sbiglpt%d: using %s\n", nr, port->name);
 }
 
-static void sbig_detach (struct parport *port)
+static void sbig_detach(struct parport *port)
 {
 	//printk(KERN_INFO "sbiglpt: detach %s\n", port->name);
 }
@@ -156,13 +156,13 @@ static struct parport_driver sbig_driver = {
 };
 
 static struct file_operations sbig_fops = {
-	.owner		= THIS_MODULE,
-	.open 		= sbig_open,
-	.release	= sbig_release,
+	.owner = THIS_MODULE,
+	.open = sbig_open,
+	.release = sbig_release,
 	.unlocked_ioctl = sbig_ioctl,
 };
 
-static int sbig_init_module (void)
+static int sbig_init_module(void)
 {
 	if (alloc_chrdev_region(&sbig_dev, 0, SBIG_NO, "sbiglpt") < 0) {
 		printk(KERN_ERR "sbiglpt: alloc_chrdev_region failed\n");
@@ -172,16 +172,16 @@ static int sbig_init_module (void)
 		printk(KERN_ERR "sbiglpt: class_create failed\n");
 		goto out_reg;
 	}
-	cdev_init (&sbig_cdev, &sbig_fops);
-	if (cdev_add (&sbig_cdev, sbig_dev, SBIG_NO) < 0) {
+	cdev_init(&sbig_cdev, &sbig_fops);
+	if (cdev_add(&sbig_cdev, sbig_dev, SBIG_NO) < 0) {
 		printk(KERN_ERR "sbiglpt: cdev_add failed\n");
 		goto out_class;
 	}
-	if (parport_register_driver (&sbig_driver)) {
+	if (parport_register_driver(&sbig_driver)) {
 		printk(KERN_ERR "sbiglpt: parport_register_driver failed\n");
 		goto out_cdev;
 	}
-	return(0);
+	return (0);
 out_cdev:
 	cdev_del(&sbig_cdev);
 out_class:
@@ -189,7 +189,7 @@ out_class:
 out_reg:
 	unregister_chrdev_region(sbig_dev, SBIG_NO);
 out:
-	return(-1);
+	return (-1);
 }
 
 static void sbig_cleanup_module(void)
@@ -200,7 +200,7 @@ static void sbig_cleanup_module(void)
 	for (nr = 0; nr < sbig_count; nr++) {
 		parport_release(sbig_table[nr].dev);
 		parport_unregister_device(sbig_table[nr].dev);
- 		device_destroy(sbig_class, MKDEV (MAJOR(sbig_dev), nr));
+		device_destroy(sbig_class, MKDEV(MAJOR(sbig_dev), nr));
 	}
 	class_destroy(sbig_class);
 	unregister_chrdev_region(sbig_dev, SBIG_NO);
