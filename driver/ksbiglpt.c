@@ -23,10 +23,79 @@
 #include <asm/io.h>
 
 #include "ulptdrv.h"
-#include "sbigudrv.h"
 #include "ksbiglptmain.h"
-#include "ksbiglpt.h"
-#include "paropts.h" 
+
+#define HSI					0x10	// hand shake input bit
+#define CIP					0x10	// conversion in progress bit
+#define CAN                 0x18	// CAN response from Micro
+#define NAK                 0x15	// NAK response from Micro
+#define ACK                 0x06	// ACK response from Micro
+
+#define NIBBLE_TIMEOUT		5	// ticks between chars received from camera
+						// increased from 2 to 5 for TCE
+#define LNIBBLE_TIMEOUT                 (55 * NIBBLE_TIMEOUT)
+#define CONVERSION_DELAY	50000	// queries (approx. 1us each) before
+									// A/D must signal not busy
+#define LCONVERSION_DELAY               500
+#define VCLOCK_DELAY		10		// delays between vertical clocks
+									//  on the imaging CCD
+#define ST1K_VCLOCK_X		10		// multiplier for VClock an ST1K
+#define CLEAR_BLOCK     	10		// number of pixels cleared in a block
+#define DUMP_RATIO			5		// after every N vertical clocks
+									//  do a full horizontal clock on
+#define BIAS_WIDTH			128     // number of pixels to average for bias
+#define IDLE_STATE_DELAY	3		// time to force idle at start of packet
+#define LIDLE_STATE_DELAY               (55 * IDLE_STATE_DELAY)
+
+/* abbreviated enum - see SDK sbigudrv.h */
+typedef enum {
+	CE_NO_ERROR = 0,
+	CE_BAD_PARAMETER = 6,
+	CE_TX_TIMEOUT = 7,
+	CE_RX_TIMEOUT = 8,
+	CE_NAK_RECEIVED = 9,
+	CE_CAN_RECEIVED = 10,
+	CE_UNKNOWN_RESPONSE = 11,
+	CE_BAD_LENGTH = 12,
+	CE_AD_TIMEOUT = 13,
+} PAR_ERROR;
+
+/* abbreviated enum - see SDK sbigudrv.h */
+typedef enum {
+        CCD_IMAGING = 0,
+	CCD_TRACKING = 1,
+	CCD_EXT_TRACKING = 2,
+} CCD_REQUEST;
+
+/* abbreviated enum - see SDK sbigudrv.h */
+typedef enum {
+	ST5C_CAMERA = 6,
+	ST237_CAMERA = 8,
+	ST10_CAMERA = 12,
+	ST1K_CAMERA = 13,
+} CAMERA_TYPE;
+
+/* from SDK sbigudrv.h */
+typedef struct {
+	unsigned short version;
+        char name[64];
+        unsigned short maxRequest;
+} GetDriverInfoResults0;
+
+typedef enum { TRACKING_CLOCKS=0x00, IMAGING_CLOCKS=0x10, MICRO_OUT=0x20,
+	CONTROL_OUT=0x30, READOUT_CONTROL=0x00, DEVICE_SELECT=0x60 } OUTPUT_REGISTER;
+typedef enum { AD0=0x00, AD1=0x10, AD2=0x20, AD3_MDI=0x30 } INPUT_REGISTER;
+typedef enum { HSO=0x01, MICRO_SELECT=0x02, IMAGING_SELECT=0x00,
+	TRACKING_SELECT=0x04, MICRO_SYNC=0x04, AD_TRIGGER=0x08 } CONTROL_BITS;
+
+typedef enum { V1_H=1, V2_H=2, TRG_H=4, IABG_M=8 } IMAGING_CLOCK_BITS;
+typedef enum { P1V_H=1, P2V_H=2, P1H_L=8 } KI_CLOCK_BITS;
+typedef enum { IAG_H=1, TABG_M=2, BIN=4, CLR=8} TRACKING_CLOCK_BITS;
+typedef enum { KCLR=0, KBIN1=4, KBIN2=8, KBIN3=12} KT_CLOCK_BITS;
+typedef enum { IIAG_H=1, SAG_H=2, SRG_H=4, R1_D3=8} CCD_CLOCK_BITS;
+typedef enum { CLR_SELECT=1, R3_D1=2, MICRO_CLK_SELECT=4,
+	PLD_TRIGGER=8 } READOUT_CONTROL_BITS;
+
 
 // This was optimized to remove 2 outportb() calls.
 // Assumes AD3 is addressed coming into it and leaves
@@ -42,6 +111,51 @@
  pd->pp_outb(AD0, pd->minor);                              \
  u += (unsigned short)(pd->pp_inb(pd->minor) & 0x78) >> 3
 //-----------------------------------------------------------------------------
+
+int  KLptGetDriverInfo       (GetDriverInfoResults0 *);
+int  KLptGetJiffies          (unsigned long         *);
+int  KLptGetHz               (unsigned long         *);
+int  KSbigLptGetLastError    (unsigned short        *);
+int  KLptTestCommand         (void);
+
+void KLptInitPort            (struct private_data *);
+int  KLptCameraOutWrapper    (struct private_data *, LinuxCameraOutParams  *);
+int  KLptSendMicroBlock      (struct private_data *, LinuxMicroblock       *);
+int  KLptGetMicroBlock       (struct private_data *, LinuxMicroblock       *);
+int  KLptSetVdd              (struct private_data *, IocSetVdd             *);
+int  KLptClearImagingArray   (struct private_data *, IOC_CLEAR_CCD_PARAMS  *);
+int  KLptClearTrackingArray  (struct private_data *, IOC_CLEAR_CCD_PARAMS  *);
+int  KLptGetPixels           (struct private_data *, LinuxGetPixelsParams  *);
+int  KLptGetArea             (struct private_data *, LinuxGetAreaParams    *);
+int  KLptRVClockImagingCCD   (struct private_data *, IOC_VCLOCK_CCD_PARAMS *);
+int  KLptRVClockTrackingCCD  (struct private_data *, IOC_VCLOCK_CCD_PARAMS *);
+int  KLptRVClockST5CCCD      (struct private_data *, IOC_VCLOCK_CCD_PARAMS *);
+int  KLptDumpImagingLines    (struct private_data *, IOC_DUMP_LINES_PARAMS *);
+int  KLptDumpTrackingLines   (struct private_data *, IOC_DUMP_LINES_PARAMS *);
+int  KLptDumpST5CLines       (struct private_data *, IOC_DUMP_LINES_PARAMS *);
+int  KLptClockAD             (struct private_data *, short                 *);
+void KLptIoDelay             (struct private_data *, short);
+void KLptMicroOut            (struct private_data *, unsigned char val);
+int  KLptHClear              (struct private_data *, short times);
+int  KLptWaitForPLD          (struct private_data *);
+int  KLptWaitForAD           (struct private_data *);
+void KDisable                (struct private_data *);
+void KEnable                 (struct private_data *);
+void KLptDisableLptInterrupts(struct private_data *);
+void KLptReadyToRx           (struct private_data *);
+void KLptForceMicroIdle      (struct private_data *);
+int  KLptGetBufferSize       (struct private_data *);
+int  KLptVClockImagingCCD    (struct private_data *, CAMERA_TYPE cameraID,	
+			                             unsigned char baseClks,	  
+			                             short hClears);
+void KLptCameraOut           (struct private_data *, unsigned char reg, 
+                                                     unsigned char val);
+int  KLptSetBufferSize       (struct private_data *, spinlock_t     *, 
+                                                     unsigned short *);
+unsigned char KLptMicroStat  (struct private_data *);
+unsigned char KLptCameraIn   (struct private_data *, unsigned char reg);
+unsigned char KLptMicroIn    (struct private_data *, unsigned char ackIt);
+
 // Global variables:
 unsigned short gLastError;
 //========================================================================
