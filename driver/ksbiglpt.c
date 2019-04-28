@@ -166,55 +166,37 @@ enum readout_control_bits {
 	u += (unsigned short)(pd->pp_inb(pd->minor) & 0x78) >> 3; \
 } while (0)
 
-int KLptGetJiffies(unsigned long *);
-int KLptGetHz(unsigned long *);
-int KSbigLptGetLastError(unsigned short *);
-int KLptTestCommand(void);
-
-void KLptInitPort(struct private_data *);
-int KLptCameraOutWrapper(struct private_data *, LinuxCameraOutParams *);
-int KLptSendMicroBlock(struct private_data *, LinuxMicroblock *);
-int KLptGetMicroBlock(struct private_data *, LinuxMicroblock *);
-int KLptSetVdd(struct private_data *, IocSetVdd *);
-int KLptClearImagingArray(struct private_data *, IOC_CLEAR_CCD_PARAMS *);
-int KLptClearTrackingArray(struct private_data *, IOC_CLEAR_CCD_PARAMS *);
-int KLptGetPixels(struct private_data *, LinuxGetPixelsParams *);
-int KLptGetArea(struct private_data *, LinuxGetAreaParams *);
-int KLptRVClockImagingCCD(struct private_data *, IOC_VCLOCK_CCD_PARAMS *);
-int KLptRVClockTrackingCCD(struct private_data *, IOC_VCLOCK_CCD_PARAMS *);
-int KLptRVClockST5CCCD(struct private_data *, IOC_VCLOCK_CCD_PARAMS *);
-int KLptDumpImagingLines(struct private_data *, IOC_DUMP_LINES_PARAMS *);
-int KLptDumpTrackingLines(struct private_data *, IOC_DUMP_LINES_PARAMS *);
-int KLptDumpST5CLines(struct private_data *, IOC_DUMP_LINES_PARAMS *);
-int KLptClockAD(struct private_data *, short *);
-void KLptIoDelay(struct private_data *, short);
-void KLptMicroOut(struct private_data *, unsigned char val);
-int KLptHClear(struct private_data *, short times);
-int KLptWaitForPLD(struct private_data *);
-int KLptWaitForAD(struct private_data *);
-void KDisable(struct private_data *);
-void KEnable(struct private_data *);
-void KLptDisableLptInterrupts(struct private_data *);
-void KLptReadyToRx(struct private_data *);
-void KLptForceMicroIdle(struct private_data *);
-int KLptGetBufferSize(struct private_data *);
-int KLptVClockImagingCCD(struct private_data *, enum camera_type cameraID,
-			 unsigned char baseClks, short hClears);
-void KLptCameraOut(struct private_data *, unsigned char reg, unsigned char val);
-int KLptSetBufferSize(struct private_data *, spinlock_t *, unsigned short *);
-unsigned char KLptMicroStat(struct private_data *);
-unsigned char KLptCameraIn(struct private_data *, unsigned char reg);
-unsigned char KLptMicroIn(struct private_data *, unsigned char ackIt);
-
 // Global variables:
 unsigned short gLastError;
+
 //========================================================================
-// KLptInitPort
-// Disable interrupts and force the LPT com to idle.
+// KLptCameraOut
+// Write data to one of the Camera Registers.
 //========================================================================
-void KLptInitPort(struct private_data *pd)
+void KLptCameraOut(struct private_data *pd, unsigned char reg,
+		   unsigned char val)
 {
-	KLptForceMicroIdle(pd);
+	pd->pp_outb((unsigned char)(reg + val), pd->minor);
+	pd->pp_outb((unsigned char)(reg + val + 0x80), pd->minor);
+	pd->pp_outb((unsigned char)(reg + val + 0x80), pd->minor);
+	pd->pp_outb((unsigned char)(reg + val), pd->minor);
+
+	if (reg == CONTROL_OUT) {
+		pd->control_out = val;
+	} else if (reg == IMAGING_CLOCKS) {
+		pd->imaging_clocks_out = val;
+	}
+}
+//========================================================================
+// KLptForceMicroIdle
+// Reset the handshake line to the microcontroller to the idle state
+// and delay long enough to ensure the systems are in sync.
+//========================================================================
+void KLptForceMicroIdle(struct private_data *pd)
+{
+	// all clocks low
+	KLptCameraOut(pd, CONTROL_OUT, 0);
+	mdelay(IDLE_STATE_DELAY);
 }
 //========================================================================
 // KLptCameraOutWraper
@@ -239,22 +221,65 @@ int KLptCameraOutWrapper(struct private_data *pd, LinuxCameraOutParams *arg)
 	return (CE_NO_ERROR);
 }
 //========================================================================
-// KLptCameraOut
-// Write data to one of the Camera Registers.
+// KLptCameraIn
+// Read data from one of the Camera Registers.
 //========================================================================
-void KLptCameraOut(struct private_data *pd, unsigned char reg,
-		   unsigned char val)
+unsigned char KLptCameraIn(struct private_data *pd, unsigned char reg)
 {
-	pd->pp_outb((unsigned char)(reg + val), pd->minor);
-	pd->pp_outb((unsigned char)(reg + val + 0x80), pd->minor);
-	pd->pp_outb((unsigned char)(reg + val + 0x80), pd->minor);
-	pd->pp_outb((unsigned char)(reg + val), pd->minor);
+	pd->pp_outb(reg, pd->minor);
+	return (pd->pp_inb(pd->minor) >> 3);
+}
+//========================================================================
+// KLptMicroStat
+// Return TRUE if the next nibble can be sent or received at the
+// microcontroller.
+//========================================================================
+unsigned char KLptMicroStat(struct private_data *pd)
+{
+	unsigned char val;
 
-	if (reg == CONTROL_OUT) {
-		pd->control_out = val;
-	} else if (reg == IMAGING_CLOCKS) {
-		pd->imaging_clocks_out = val;
+	KLptCameraOut(pd, CONTROL_OUT,
+		      (unsigned char)(pd->control_out | MICRO_SELECT));
+	val = KLptCameraIn(pd, AD3_MDI);
+	if (pd->control_out & HSO)
+		return (val & HSI);
+	return ((~val) & HSI);
+}
+//========================================================================
+// KLptMicroIn
+// Read the data from the microcontroller and toggle the HSO line.
+// This assumes KLptMicroStat has been called and returned TRUE.
+//========================================================================
+unsigned char KLptMicroIn(struct private_data *pd, unsigned char ackIt)
+{
+	unsigned char val;
+
+	KLptCameraOut(pd, CONTROL_OUT,
+		      (unsigned char)(pd->control_out | MICRO_SELECT));
+	val = KLptCameraIn(pd, AD3_MDI) & 0x0F;
+	if (ackIt) {
+		KLptCameraOut(pd, CONTROL_OUT,
+			      (unsigned char)(pd->control_out ^ HSO));
 	}
+	return (val);
+}
+//========================================================================
+// KLptMicroOut
+// Send data to the microcontroller and toggle the HSO line.
+// This assumes MicroStat has been called and returned TRUE.
+//========================================================================
+void KLptMicroOut(struct private_data *pd, unsigned char val)
+{
+	KLptCameraOut(pd, MICRO_OUT, val);
+	KLptCameraOut(pd, CONTROL_OUT, (unsigned char)(pd->control_out ^ HSO));
+}
+//========================================================================
+// KLptReadyToRx
+// Indicate to micro that we're ready to receive data.
+//========================================================================
+void KLptReadyToRx(struct private_data *pd)
+{
+	KLptMicroOut(pd, 0); // let micro know we're ready to rx
 }
 //========================================================================
 // KLptSendMicroBlock
@@ -499,69 +524,6 @@ void KLptIoDelay(struct private_data *pd, short i)
 	}
 }
 //========================================================================
-// KLptReadyToRx
-// Indicate to micro that we're ready to receive data.
-//========================================================================
-void KLptReadyToRx(struct private_data *pd)
-{
-	KLptMicroOut(pd, 0); // let micro know we're ready to rx
-}
-//========================================================================
-// KLptForceMicroIdle
-// Reset the handshake line to the microcontroller to the idel state
-// and delay long enough to ensure the systems are in sync.
-//========================================================================
-void KLptForceMicroIdle(struct private_data *pd)
-{
-	// all clocks low
-	KLptCameraOut(pd, CONTROL_OUT, 0);
-	mdelay(IDLE_STATE_DELAY);
-}
-//========================================================================
-// KLptMicroStat
-// Return TRUE if the next nibble can be sent or received at the
-// microcontroller.
-//========================================================================
-unsigned char KLptMicroStat(struct private_data *pd)
-{
-	unsigned char val;
-
-	KLptCameraOut(pd, CONTROL_OUT,
-		      (unsigned char)(pd->control_out | MICRO_SELECT));
-	val = KLptCameraIn(pd, AD3_MDI);
-	if (pd->control_out & HSO)
-		return (val & HSI);
-	return ((~val) & HSI);
-}
-//========================================================================
-// KLptMicroIn
-// Read the data from the microcontroller and toggle the HSO line.
-// This assumes KLptMicroStat has been called and returned TRUE.
-//========================================================================
-unsigned char KLptMicroIn(struct private_data *pd, unsigned char ackIt)
-{
-	unsigned char val;
-
-	KLptCameraOut(pd, CONTROL_OUT,
-		      (unsigned char)(pd->control_out | MICRO_SELECT));
-	val = KLptCameraIn(pd, AD3_MDI) & 0x0F;
-	if (ackIt) {
-		KLptCameraOut(pd, CONTROL_OUT,
-			      (unsigned char)(pd->control_out ^ HSO));
-	}
-	return (val);
-}
-//========================================================================
-// KLptMicroOut
-// Send data to the microcontroller and toggle the HSO line.
-// This assumes MicroStat has been called and returned TRUE.
-//========================================================================
-void KLptMicroOut(struct private_data *pd, unsigned char val)
-{
-	KLptCameraOut(pd, MICRO_OUT, val);
-	KLptCameraOut(pd, CONTROL_OUT, (unsigned char)(pd->control_out ^ HSO));
-}
-//========================================================================
 // KLptWaitForPLD
 // Wait till the PLD signals complete.
 //========================================================================
@@ -612,6 +574,68 @@ int KLptHClear(struct private_data *pd, short times)
 			return (gLastError = status);
 		}
 	}
+	return (CE_NO_ERROR);
+}
+//========================================================================
+// KLptRVClockST5CCCD
+// Vertically clock the 255 CCD and prepare it for a line readout.
+//========================================================================
+int KLptRVClockST5CCCD(struct private_data *pd, IOC_VCLOCK_CCD_PARAMS *pParams)
+{
+	short i, onVertBin = pParams->onVertBin;
+
+	// no clear of the serial register is required since when not addressing
+	// the CCD the SRG is left low in the low dark current state
+
+	// do vertical shift into readout register
+	KDisable(pd);
+	KLptCameraOut(pd, READOUT_CONTROL, 0); // select PC control of CCD
+	// do vertical shift
+	KLptCameraOut(pd, IMAGING_CLOCKS, SAG_H); // SAG high
+	for (i = 0; i < onVertBin; i++) {
+		KLptCameraOut(pd, IMAGING_CLOCKS,
+			      SAG_H + SRG_H); // SAG+SRG high
+		KLptCameraOut(pd, IMAGING_CLOCKS, SRG_H); // SRG high
+	}
+	KLptCameraOut(pd, IMAGING_CLOCKS, 0); // all clocks low
+	KEnable(pd);
+	return (CE_NO_ERROR);
+}
+//========================================================================
+// KLptRVClockTrackingCCD
+// Vertically clock the Tracking CCD and prepare it for a line readout.
+//========================================================================
+int KLptRVClockTrackingCCD(struct private_data *pd,
+			   IOC_VCLOCK_CCD_PARAMS *pParams)
+{
+	short i, onVertBin = pParams->onVertBin;
+
+	// no clear of the serial register is required since when not addressing
+	// the CCD the SRG is left low in the low dark current state
+
+	// do vertical shift
+	KDisable(pd); // shorts off for vert shift
+	KLptCameraOut(pd, CONTROL_OUT, TRACKING_SELECT); // select tracking CCD
+	KLptCameraOut(pd, TRACKING_CLOCKS,
+		      TABG_M + CLR); // set ABG to MID level
+
+	// do vertical shift into readout register
+	KLptCameraOut(pd, CONTROL_OUT, TRACKING_SELECT); // select tracking CCD
+	KLptCameraOut(pd, TRACKING_CLOCKS, TABG_M); // set ABG to MID level
+	KLptCameraOut(pd, TRACKING_CLOCKS,
+		      TABG_M + CLR); // set SRG low from MID
+
+	// do vertical shift
+	KLptCameraOut(pd, TRACKING_CLOCKS, TABG_M + CLR + IAG_H); // IAG high
+	for (i = 0; i < onVertBin; i++) {
+		KLptCameraOut(pd, TRACKING_CLOCKS,
+			      TABG_M + CLR + BIN + IAG_H); // IAG+SRG high
+		KLptCameraOut(pd, TRACKING_CLOCKS,
+			      TABG_M + CLR + BIN); // SRG high
+	}
+	KLptCameraOut(pd, TRACKING_CLOCKS, TABG_M + CLR); // both low
+	KLptCameraOut(pd, TRACKING_CLOCKS, 0); // all clocks low
+	KEnable(pd);
 	return (CE_NO_ERROR);
 }
 //========================================================================
@@ -731,13 +755,33 @@ int KLptBlockClearPixels(struct private_data *pd, enum camera_type cameraID,
 	return (status);
 }
 //========================================================================
-// KLptCameraIn
-// Read data from one of the Camera Registers.
+// KLptRVClockImagingCCD
+// Vertically clock the Imaging CCD and prepare it for a line readout.
 //========================================================================
-unsigned char KLptCameraIn(struct private_data *pd, unsigned char reg)
+int KLptRVClockImagingCCD(struct private_data *pd,
+			  IOC_VCLOCK_CCD_PARAMS *pParams)
 {
-	pd->pp_outb(reg, pd->minor);
-	return (pd->pp_inb(pd->minor) >> 3);
+	int status = CE_NO_ERROR;
+	enum camera_type cameraID = pParams->cameraID;
+	short onVertBin = pParams->onVertBin;
+	short clearWidth = pParams->clearWidth;
+	short i;
+
+	// clear serial register in case an interrupt came along
+	// this needs to be passed incase its the large KAF1600 CCD
+	status = KLptBlockClearPixels(pd, cameraID, CCD_IMAGING, clearWidth, 0);
+	if (status != CE_NO_ERROR)
+		return (gLastError = status);
+
+	// do vertical shift into readout register
+	KDisable(pd);
+	// select imaging CCD
+	KLptCameraOut(pd, CONTROL_OUT, IMAGING_SELECT);
+	for (i = 0; i < onVertBin; i++) {
+		KLptVClockImagingCCD(pd, cameraID, IABG_M, 0);
+	}
+	KEnable(pd);
+	return (CE_NO_ERROR);
 }
 //========================================================================
 // KLptGetPixels
@@ -1026,97 +1070,6 @@ int KLptGetArea(struct private_data *pd, LinuxGetAreaParams *arg)
 	}
 
 	return (status);
-}
-//========================================================================
-// KLptRVClockImagingCCD
-// Vertically clock the Imaging CCD and prepare it for a line readout.
-//========================================================================
-int KLptRVClockImagingCCD(struct private_data *pd,
-			  IOC_VCLOCK_CCD_PARAMS *pParams)
-{
-	int status = CE_NO_ERROR;
-	enum camera_type cameraID = pParams->cameraID;
-	short onVertBin = pParams->onVertBin;
-	short clearWidth = pParams->clearWidth;
-	short i;
-
-	// clear serial register in case an interrupt came along
-	// this needs to be passed incase its the large KAF1600 CCD
-	status = KLptBlockClearPixels(pd, cameraID, CCD_IMAGING, clearWidth, 0);
-	if (status != CE_NO_ERROR)
-		return (gLastError = status);
-
-	// do vertical shift into readout register
-	KDisable(pd);
-	// select imaging CCD
-	KLptCameraOut(pd, CONTROL_OUT, IMAGING_SELECT);
-	for (i = 0; i < onVertBin; i++) {
-		KLptVClockImagingCCD(pd, cameraID, IABG_M, 0);
-	}
-	KEnable(pd);
-	return (CE_NO_ERROR);
-}
-//========================================================================
-// KLptRVClockTrackingCCD
-// Vertically clock the Tracking CCD and prepare it for a line readout.
-//========================================================================
-int KLptRVClockTrackingCCD(struct private_data *pd,
-			   IOC_VCLOCK_CCD_PARAMS *pParams)
-{
-	short i, onVertBin = pParams->onVertBin;
-
-	// no clear of the serial register is required since when not addressing
-	// the CCD the SRG is left low in the low dark current state
-
-	// do vertical shift
-	KDisable(pd); // shorts off for vert shift
-	KLptCameraOut(pd, CONTROL_OUT, TRACKING_SELECT); // select tracking CCD
-	KLptCameraOut(pd, TRACKING_CLOCKS,
-		      TABG_M + CLR); // set ABG to MID level
-
-	// do vertical shift into readout register
-	KLptCameraOut(pd, CONTROL_OUT, TRACKING_SELECT); // select tracking CCD
-	KLptCameraOut(pd, TRACKING_CLOCKS, TABG_M); // set ABG to MID level
-	KLptCameraOut(pd, TRACKING_CLOCKS,
-		      TABG_M + CLR); // set SRG low from MID
-
-	// do vertical shift
-	KLptCameraOut(pd, TRACKING_CLOCKS, TABG_M + CLR + IAG_H); // IAG high
-	for (i = 0; i < onVertBin; i++) {
-		KLptCameraOut(pd, TRACKING_CLOCKS,
-			      TABG_M + CLR + BIN + IAG_H); // IAG+SRG high
-		KLptCameraOut(pd, TRACKING_CLOCKS,
-			      TABG_M + CLR + BIN); // SRG high
-	}
-	KLptCameraOut(pd, TRACKING_CLOCKS, TABG_M + CLR); // both low
-	KLptCameraOut(pd, TRACKING_CLOCKS, 0); // all clocks low
-	KEnable(pd);
-	return (CE_NO_ERROR);
-}
-//========================================================================
-// KLptRVClockST5CCCD
-// Vertically clock the 255 CCD and prepare it for a line readout.
-//========================================================================
-int KLptRVClockST5CCCD(struct private_data *pd, IOC_VCLOCK_CCD_PARAMS *pParams)
-{
-	short i, onVertBin = pParams->onVertBin;
-
-	// no clear of the serial register is required since when not addressing
-	// the CCD the SRG is left low in the low dark current state
-
-	// do vertical shift into readout register
-	KDisable(pd);
-	KLptCameraOut(pd, READOUT_CONTROL, 0); // select PC control of CCD
-	// do vertical shift
-	KLptCameraOut(pd, IMAGING_CLOCKS, SAG_H); // SAG high
-	for (i = 0; i < onVertBin; i++) {
-		KLptCameraOut(pd, IMAGING_CLOCKS,
-			      SAG_H + SRG_H); // SAG+SRG high
-		KLptCameraOut(pd, IMAGING_CLOCKS, SRG_H); // SRG high
-	}
-	KLptCameraOut(pd, IMAGING_CLOCKS, 0); // all clocks low
-	KEnable(pd);
-	return (CE_NO_ERROR);
 }
 //========================================================================
 // KLptDumpImagingLines
@@ -1534,6 +1487,19 @@ int KLptGetHz(unsigned long *arg)
 	return (put_user((unsigned long)HZ, arg));
 }
 //========================================================================
+// KSbigLptGetLastError
+//========================================================================
+int KSbigLptGetLastError(unsigned short *arg)
+{
+	int status = put_user(gLastError, arg);
+	if (status == 0) {
+		gLastError = CE_NO_ERROR;
+	} else {
+		gLastError = CE_BAD_PARAMETER;
+	}
+	return (status);
+}
+//========================================================================
 // KDevIoctl
 //========================================================================
 long KDevIoctl(struct file *filp, unsigned int cmd, unsigned long arg,
@@ -1551,7 +1517,7 @@ long KDevIoctl(struct file *filp, unsigned int cmd, unsigned long arg,
 
 	switch (cmd) {
 	case LIOCTL_INIT_PORT:
-		KLptInitPort(pd);
+		KLptForceMicroIdle(pd);
 		break;
 
 	case LIOCTL_CAMERA_OUT:
@@ -1647,19 +1613,6 @@ long KDevIoctl(struct file *filp, unsigned int cmd, unsigned long arg,
 	if (status != CE_NO_ERROR)
 		gLastError = status;
 
-	return (status);
-}
-//========================================================================
-// KSbigLptGetLastError
-//========================================================================
-int KSbigLptGetLastError(unsigned short *arg)
-{
-	int status = put_user(gLastError, arg);
-	if (status == 0) {
-		gLastError = CE_NO_ERROR;
-	} else {
-		gLastError = CE_BAD_PARAMETER;
-	}
 	return (status);
 }
 //========================================================================
