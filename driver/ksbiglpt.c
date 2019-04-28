@@ -203,12 +203,13 @@ void KLptForceMicroIdle(struct sbig_client *pd)
 // Write data to one of the Camera Registers.
 //========================================================================
 int KLptCameraOutWrapper(struct sbig_client *pd,
-			 struct linux_camera_out_params *arg)
+			 unsigned long arg)
 {
 	int status;
 	struct linux_camera_out_params cop;
 
-	status = copy_from_user(&cop, (struct linux_camera_out_params *)arg,
+	status = copy_from_user(&cop,
+				(struct linux_camera_out_params __user *)arg,
 				sizeof(struct linux_camera_out_params));
 	if (status != 0) {
 		printk(KERN_ERR "%s() : copy_from_user : error\n",
@@ -285,7 +286,7 @@ void KLptReadyToRx(struct sbig_client *pd)
 // KLptSendMicroBlock
 // Send a block of data to the micro.
 //========================================================================
-int KLptSendMicroBlock(struct sbig_client *pd, struct linux_micro_block *arg)
+int KLptSendMicroBlock(struct sbig_client *pd, unsigned long arg)
 {
 	int status;
 	short i, nibbleLen;
@@ -296,7 +297,8 @@ int KLptSendMicroBlock(struct sbig_client *pd, struct linux_micro_block *arg)
 	// Set nibbleTimeout to 300 ms.
 	nibbleTimeout = HZ / 3;
 
-	status = copy_from_user(&lmb, arg, sizeof(struct linux_micro_block));
+	status = copy_from_user(&lmb, (struct linux_micro_block __user *)arg,
+				sizeof(struct linux_micro_block));
 	if (status != 0) {
 		printk(KERN_ERR "%s() : copy_from_user : lmb error.\n",
 		       __FUNCTION__);
@@ -351,8 +353,7 @@ int KLptSendMicroBlock(struct sbig_client *pd, struct linux_micro_block *arg)
 // KLptGetMicroBlock
 // Get a block of bytes (nibbles) from the camera on the parallel port.
 //========================================================================
-int KLptGetMicroBlock(struct sbig_client *pd,
-		      struct linux_micro_block *arg)
+int KLptGetMicroBlock(struct sbig_client *pd, unsigned long arg)
 {
 	int status;
 	short state, rx_len, cmp_len, packet_len = 0;
@@ -363,7 +364,8 @@ int KLptGetMicroBlock(struct sbig_client *pd,
 	// Set nibbleTimeout to 300 ms.
 	nibbleTimeout = HZ / 3;
 
-	status = copy_from_user(&lmb, arg, sizeof(struct linux_micro_block));
+	status = copy_from_user(&lmb, (struct linux_micro_block __user *)arg,
+				sizeof(struct linux_micro_block));
 	if (status != 0) {
 		printk(KERN_ERR "%s() : copy_from_user : lmb error.\n",
 		       __FUNCTION__);
@@ -467,11 +469,11 @@ int KLptGetMicroBlock(struct sbig_client *pd,
 //========================================================================
 // KLptSetVdd
 //========================================================================
-int KLptSetVdd(struct sbig_client *pd, struct ioc_set_vdd *arg)
+int KLptSetVdd(struct sbig_client *pd, unsigned long arg)
 {
 	struct ioc_set_vdd svdd;
 
-	if (copy_from_user(&svdd, (struct ioc_set_vdd *)arg,
+	if (copy_from_user(&svdd, (struct ioc_set_vdd __user *)arg,
 			   sizeof(struct ioc_set_vdd)) != 0) {
 		printk(KERN_ERR "%s() : copy_from_user : error\n",
 		       __FUNCTION__);
@@ -484,7 +486,7 @@ int KLptSetVdd(struct sbig_client *pd, struct ioc_set_vdd *arg)
 	KLptCameraOut(pd, IMAGING_CLOCKS,
 		      (unsigned char)(svdd.raiseIt ? 0 : TRG_H));
 
-	if (copy_to_user((struct ioc_set_vdd *)arg, &svdd,
+	if (copy_to_user((struct ioc_set_vdd __user *)arg, &svdd,
 			 sizeof(struct ioc_set_vdd)) != 0) {
 		printk(KERN_ERR "%s() : copy_to_user : svdd : error\n",
 		       __FUNCTION__);
@@ -789,7 +791,7 @@ int KLptRVClockImagingCCD(struct sbig_client *pd,
 // Get a row of pixels, discarding any on the left, digitizing len,
 // discarding on the right.
 //========================================================================
-int KLptGetPixels(struct sbig_client *pd, struct linux_get_pixels_params *arg)
+int KLptGetPixels(struct sbig_client *pd, unsigned long arg)
 {
 	int status;
 	struct linux_get_pixels_params lgpp;
@@ -802,7 +804,8 @@ int KLptGetPixels(struct sbig_client *pd, struct linux_get_pixels_params *arg)
 	short i, left, len, right, horzBin, st237A;
 	unsigned short *kbuf = (unsigned short *)(pd->buffer);
 
-	status = copy_from_user(&lgpp, (struct linux_get_pixels_params *)arg,
+	status = copy_from_user(&lgpp,
+				(struct linux_get_pixels_params __user *)arg,
 				sizeof(struct linux_get_pixels_params));
 	if (status != 0) {
 		printk(KERN_ERR "%s() : copy_from_user : error\n",
@@ -925,7 +928,7 @@ int KLptGetPixels(struct sbig_client *pd, struct linux_get_pixels_params *arg)
 // KLptGetArea
 // Get one or more rows of pixel data.
 //========================================================================
-int KLptGetArea(struct sbig_client *pd, struct linux_get_area_params *arg)
+int KLptGetArea(struct sbig_client *pd, unsigned long arg)
 {
 	int status = CE_NO_ERROR;
 	struct linux_get_area_params lgap;
@@ -939,7 +942,8 @@ int KLptGetArea(struct sbig_client *pd, struct linux_get_area_params *arg)
 	unsigned short *kbuf = (unsigned short *)(pd->buffer);
 	unsigned short *p;
 
-	status = copy_from_user(&lgap, (struct linux_get_area_params*)arg,
+	status = copy_from_user(&lgap,
+				(struct linux_get_area_params __user *)arg,
 				sizeof(struct linux_get_area_params));
 	if (status != 0) {
 		printk(KERN_ERR "%s() : copy_from_user : error\n",
@@ -1080,8 +1084,7 @@ int KLptGetArea(struct sbig_client *pd, struct linux_get_area_params *arg)
 // The width is the width of the CCD unbinned and the	len is the number
 // of bined rows to dump.
 //========================================================================
-int KLptDumpImagingLines(struct sbig_client *pd,
-			 struct ioc_dump_lines_params *arg)
+int KLptDumpImagingLines(struct sbig_client *pd, unsigned long arg)
 {
 	int status;
 	struct ioc_dump_lines_params dlp;
@@ -1093,7 +1096,8 @@ int KLptDumpImagingLines(struct sbig_client *pd,
 	short dumpRatio;
 	unsigned char ic;
 
-	status = copy_from_user(&dlp, (struct ioc_dump_lines_params *)arg,
+	status = copy_from_user(&dlp,
+				(struct ioc_dump_lines_params __user *)arg,
 				sizeof(struct ioc_dump_lines_params));
 	if (status != 0) {
 		printk(KERN_ERR "%s() : copy_from_user : error\n",
@@ -1150,8 +1154,7 @@ int KLptDumpImagingLines(struct sbig_client *pd,
 // The width is the width of the CCD unbinned and the	len is the number
 // of bined rows to dump.
 //========================================================================
-int KLptDumpTrackingLines(struct sbig_client *pd,
-			  struct ioc_dump_lines_params *arg)
+int KLptDumpTrackingLines(struct sbig_client *pd, unsigned long arg)
 {
 	int status;
 	struct ioc_dump_lines_params dlp;
@@ -1161,7 +1164,8 @@ int KLptDumpTrackingLines(struct sbig_client *pd,
 	short vertBin;
 	short i;
 
-	status = copy_from_user(&dlp, (struct ioc_dump_lines_params *)arg,
+	status = copy_from_user(&dlp,
+				(struct ioc_dump_lines_params __user *)arg,
 				sizeof(struct ioc_dump_lines_params));
 	if (status != 0) {
 		printk(KERN_ERR "%s() : copy_from_user : error\n",
@@ -1206,8 +1210,7 @@ int KLptDumpTrackingLines(struct sbig_client *pd,
 // The width is the width of the CCD unbinned and the	len is the number
 // of bined rows to dump.
 //========================================================================
-int KLptDumpST5CLines(struct sbig_client *pd,
-		      struct ioc_dump_lines_params *arg)
+int KLptDumpST5CLines(struct sbig_client *pd, unsigned long arg)
 {
 	int status;
 	struct ioc_dump_lines_params dlp;
@@ -1217,7 +1220,8 @@ int KLptDumpST5CLines(struct sbig_client *pd,
 	short vertBin;
 	short i;
 
-	status = copy_from_user(&dlp, (struct ioc_dump_lines_params *)arg,
+	status = copy_from_user(&dlp,
+				(struct ioc_dump_lines_params __user *)arg,
 				sizeof(struct ioc_dump_lines_params));
 	if (status != 0) {
 		printk(KERN_ERR "%s() : copy_from_user : error\n",
@@ -1252,14 +1256,14 @@ int KLptDumpST5CLines(struct sbig_client *pd,
 // KLptClockAD
 // Clock the AD the number of times passed.
 //========================================================================
-int KLptClockAD(struct sbig_client *pd, short *arg)
+int KLptClockAD(struct sbig_client *pd, unsigned long arg)
 {
 	int status;
 	short len;
 	unsigned short u;
 
 	// get arg value
-	if ((status = get_user(len, arg)) != 0) {
+	if ((status = get_user(len, (unsigned short __user *)arg)) != 0) {
 		printk(KERN_ERR "%s() : get_user() : error\n", __FUNCTION__);
 		gLastError = CE_BAD_PARAMETER;
 		return (status);
@@ -1288,8 +1292,7 @@ int KLptClockAD(struct sbig_client *pd, short *arg)
 // Do a fast clear of the imaging array by doing vertical shifts and
 // only clearing CLEAR_BLOCK pixels per line.
 //========================================================================
-int KLptClearImagingArray(struct sbig_client *pd,
-			  struct ioc_clear_ccd_params *arg)
+int KLptClearImagingArray(struct sbig_client *pd, unsigned long arg)
 {
 	int status = CE_NO_ERROR;
 	enum camera_type cameraID;
@@ -1298,7 +1301,8 @@ int KLptClearImagingArray(struct sbig_client *pd,
 	short i;
 	struct ioc_clear_ccd_params cccdp;
 
-	status = copy_from_user(&cccdp, (struct ioc_clear_ccd_params *)arg,
+	status = copy_from_user(&cccdp,
+				(struct ioc_clear_ccd_params __user *)arg,
 				sizeof(struct ioc_clear_ccd_params));
 	if (status != 0) {
 		printk(KERN_ERR "%s() : copy_from_user : error\n",
@@ -1307,9 +1311,9 @@ int KLptClearImagingArray(struct sbig_client *pd,
 		return (-EFAULT);
 	}
 
-	cameraID = arg->cameraID;
-	height = arg->height;
-	times = arg->times;
+	cameraID = cccdp.cameraID;
+	height = cccdp.height;
+	times = cccdp.times;
 
 	KLptCameraOut(pd, CONTROL_OUT, IMAGING_SELECT);
 	KLptCameraOut(pd, TRACKING_CLOCKS, CLR);
@@ -1334,8 +1338,7 @@ int KLptClearImagingArray(struct sbig_client *pd,
 // Do a fast clear of the tracking array by doing vertical shifts and
 // only clearing CLEAR_BLOCK pixels per line.
 //========================================================================
-int KLptClearTrackingArray(struct sbig_client *pd,
-			   struct ioc_clear_ccd_params *arg)
+int KLptClearTrackingArray(struct sbig_client *pd, unsigned long arg)
 {
 	int status = CE_NO_ERROR;
 	enum camera_type cameraID;
@@ -1344,7 +1347,8 @@ int KLptClearTrackingArray(struct sbig_client *pd,
 	short i;
 	struct ioc_clear_ccd_params cccdp;
 
-	status = copy_from_user(&cccdp, (struct ioc_clear_ccd_params *)arg,
+	status = copy_from_user(&cccdp,
+				(struct ioc_clear_ccd_params __user *)arg,
 				sizeof(struct ioc_clear_ccd_params));
 	if (status != 0) {
 		printk(KERN_ERR "%s() : copy_from_user : error\n",
@@ -1353,9 +1357,9 @@ int KLptClearTrackingArray(struct sbig_client *pd,
 		return (-EFAULT);
 	}
 
-	cameraID = arg->cameraID;
-	height = arg->height;
-	times = arg->times;
+	cameraID = cccdp.cameraID;
+	height = cccdp.height;
+	times = cccdp.times;
 
 	KLptCameraOut(pd, CONTROL_OUT, TRACKING_SELECT);
 	times *= height;
@@ -1389,7 +1393,7 @@ int KLptClearTrackingArray(struct sbig_client *pd,
 // KLptGetDriverInfo
 // Return the driver info.
 //========================================================================
-int KLptGetDriverInfo(struct driver_info_results *results)
+int KLptGetDriverInfo(unsigned long arg)
 {
 	int status;
 	struct driver_info_results gdir0;
@@ -1398,8 +1402,8 @@ int KLptGetDriverInfo(struct driver_info_results *results)
 	strcpy(gdir0.name, DRIVER_STRING);
 	gdir0.maxRequest = 1;
 
-	status = copy_to_user(results, &gdir0,
-			      sizeof(struct driver_info_results));
+	status = copy_to_user((struct driver_info_results __user *)arg,
+			      &gdir0, sizeof(struct driver_info_results));
 	if (status != 0) {
 		printk(KERN_ERR "%s() : copy_to_user : error\n", __FUNCTION__);
 		gLastError = CE_BAD_PARAMETER;
@@ -1409,30 +1413,26 @@ int KLptGetDriverInfo(struct driver_info_results *results)
 }
 //========================================================================
 int KLptSetBufferSize(struct sbig_client *pd, spinlock_t *lock,
-		      unsigned short *new_size)
+		      unsigned long arg)
 {
-	int status = CE_NO_ERROR;
+	int status;
 	unsigned short buffer_size;
-	char *kbuff = (char *)pd->buffer;
+	char *kbuff;
 
-	// check if user-space variable is available
-	if (access_ok(VERIFY_READ, new_size, sizeof(unsigned short *)) == 0) {
-		printk(KERN_ERR "%s() : access_ok() : error\n", __FUNCTION__);
-		gLastError = CE_BAD_PARAMETER;
-		return (-EFAULT);
-	}
 	// get size of the new buffer, ie. read unsigned short
-	if (__get_user(buffer_size, new_size) != 0) {
+	status = get_user(buffer_size, (unsigned short __user *)arg);
+	if (status != 0) {
 		printk(KERN_ERR "%s() : get_user() : error\n", __FUNCTION__);
 		gLastError = CE_BAD_PARAMETER;
 		return (-EFAULT);
 	}
 
 	// allocate new kernel-space I/O buffer
-	if ((kbuff = kmalloc(buffer_size, GFP_KERNEL)) == NULL) {
+	kbuff = kmalloc(buffer_size, GFP_KERNEL);
+	if (kbuff == NULL) {
 		printk(KERN_ERR "%s() : kmalloc() : new size : %d : error\n",
 		       __FUNCTION__, buffer_size);
-		// allocation failured, return previous buffer size
+		// allocation failed, return previous buffer size
 		return (pd->buffer_size);
 	}
 
@@ -1473,30 +1473,34 @@ int KLptTestCommand(void)
 // KLptGetJiffies
 // Get jiffies, ie. number of ticks from the boot time.
 //========================================================================
-int KLptGetJiffies(unsigned long *arg)
+int KLptGetJiffies(unsigned long arg)
 {
-	return (put_user((unsigned long)jiffies, arg));
+	int status = put_user((unsigned long)jiffies,
+			      (unsigned long __user *)arg);
+	return status;
 }
 //========================================================================
 // KLptGetHz
 // Get HZ.
 //========================================================================
-int KLptGetHz(unsigned long *arg)
+int KLptGetHz(unsigned long arg)
 {
-	return (put_user((unsigned long)HZ, arg));
+	int status = put_user((unsigned long)HZ,
+			      (unsigned long __user *)arg);
+	return status;
 }
 //========================================================================
 // KSbigLptGetLastError
 //========================================================================
-int KSbigLptGetLastError(unsigned short *arg)
+int KSbigLptGetLastError(unsigned long arg)
 {
-	int status = put_user(gLastError, arg);
-	if (status == 0) {
+	int status = put_user(gLastError,
+			      (unsigned short __user *)arg);
+	if (status == 0)
 		gLastError = CE_NO_ERROR;
-	} else {
+	else
 		gLastError = CE_BAD_PARAMETER;
-	}
-	return (status);
+	return status;
 }
 //========================================================================
 // sbig_ioctl - entry point
@@ -1519,76 +1523,67 @@ long sbig_ioctl(struct sbig_client *pd, unsigned int cmd, unsigned long arg,
 		break;
 
 	case LIOCTL_CAMERA_OUT:
-		KLptCameraOutWrapper(pd, (struct linux_camera_out_params *)arg);
+		KLptCameraOutWrapper(pd, arg);
 		break;
 
 	case LIOCTL_SEND_MICRO_BLOCK:
-		status = KLptSendMicroBlock(pd,
-					(struct linux_micro_block *)arg);
+		status = KLptSendMicroBlock(pd, arg);
 		break;
 
 	case LIOCTL_GET_MICRO_BLOCK:
-		status = KLptGetMicroBlock(pd,
-					(struct linux_micro_block *)arg);
+		status = KLptGetMicroBlock(pd, arg);
 		break;
 
 	case LIOCTL_SET_VDD:
-		KLptSetVdd(pd, (struct ioc_set_vdd *)arg);
+		KLptSetVdd(pd, arg);
 		break;
 
 	case LIOCTL_CLEAR_IMAG_CCD:
-		status = KLptClearImagingArray(pd,
-				(struct ioc_clear_ccd_params *)arg);
+		status = KLptClearImagingArray(pd, arg);
 		break;
 
 	case LIOCTL_CLEAR_TRAC_CCD:
-		status =
-			KLptClearTrackingArray(pd,
-				(struct ioc_clear_ccd_params *)arg);
+		status = KLptClearTrackingArray(pd, arg);
 		break;
 
 	case LIOCTL_GET_PIXELS:
-		status = KLptGetPixels(pd,
-				(struct linux_get_pixels_params *)arg);
+		status = KLptGetPixels(pd, arg);
 		break;
 
 	case LIOCTL_GET_AREA:
-		status = KLptGetArea(pd, (struct linux_get_area_params *)arg);
+		status = KLptGetArea(pd, arg);
 		break;
 
 	case LIOCTL_GET_JIFFIES:
-		status = KLptGetJiffies((unsigned long *)arg);
+		status = KLptGetJiffies(arg);
 		break;
 
 	case LIOCTL_GET_HZ:
-		status = KLptGetHz((unsigned long *)arg);
+		status = KLptGetHz(arg);
 		break;
 
 	case LIOCTL_GET_LAST_ERROR:
-		status = KSbigLptGetLastError((unsigned short *)arg);
+		status = KSbigLptGetLastError(arg);
 		break;
 
 	case LIOCTL_DUMP_ILINES:
-		status = KLptDumpImagingLines(pd,
-				(struct ioc_dump_lines_params *)arg);
+		status = KLptDumpImagingLines(pd, arg);
 		break;
 
 	case LIOCTL_DUMP_TLINES:
-		status = KLptDumpTrackingLines(pd,
-				(struct ioc_dump_lines_params *)arg);
+		status = KLptDumpTrackingLines(pd, arg);
 		break;
 
 	case LIOCTL_DUMP_5LINES:
-		status = KLptDumpST5CLines(pd,
-				(struct ioc_dump_lines_params *)arg);
+		status = KLptDumpST5CLines(pd, arg);
 		break;
 
 	case LIOCTL_CLOCK_AD:
-		status = KLptClockAD(pd, (short *)arg);
+		status = KLptClockAD(pd, arg);
 		break;
 
 	case LIOCTL_GET_DRIVER_INFO:
-		status = KLptGetDriverInfo((struct driver_info_results *)arg);
+		status = KLptGetDriverInfo(arg);
 		break;
 
 	case LIOCTL_REALLOCATE_PORTS:
@@ -1597,8 +1592,7 @@ long sbig_ioctl(struct sbig_client *pd, unsigned int cmd, unsigned long arg,
 		break;
 
 	case LIOCTL_SET_BUFFER_SIZE:
-		status =
-			KLptSetBufferSize(pd, spin_lock, (unsigned short *)arg);
+		status = KLptSetBufferSize(pd, spin_lock, arg);
 		break;
 
 	case LIOCTL_GET_BUFFER_SIZE:
