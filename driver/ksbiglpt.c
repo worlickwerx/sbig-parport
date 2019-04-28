@@ -48,8 +48,8 @@
 
 #define IDLE_STATE_DELAY	(55*3)	// time to force idle at start of packet
 
-/* abbreviated enum - see SDK sbigudrv.h */
-typedef enum {
+/* values must match PAR_ERROR in sbigudrv.h */
+enum par_error {
 	CE_NO_ERROR = 0,
 	CE_BAD_PARAMETER = 6,
 	CE_TX_TIMEOUT = 7,
@@ -59,64 +59,97 @@ typedef enum {
 	CE_UNKNOWN_RESPONSE = 11,
 	CE_BAD_LENGTH = 12,
 	CE_AD_TIMEOUT = 13,
-} PAR_ERROR;
+	// values not explicitly used here omitted
+};
 
-/* abbreviated enum - see SDK sbigudrv.h */
-typedef enum {
+/* values must match CCD_REQUEST in sbigudrv.h */
+enum ccd_request {
 	CCD_IMAGING = 0,
 	CCD_TRACKING = 1,
 	CCD_EXT_TRACKING = 2,
-} CCD_REQUEST;
+};
 
-/* abbreviated enum - see SDK sbigudrv.h */
-typedef enum {
+/* values must match CAMERA_TYPE in sbigudrv.h */
+enum camera_type {
 	ST5C_CAMERA = 6,
 	ST237_CAMERA = 8,
 	ST10_CAMERA = 12,
 	ST1K_CAMERA = 13,
-} CAMERA_TYPE;
+	// values not explicitly used here omitted
+};
 
-/* from SDK sbigudrv.h */
-typedef struct {
+/* [ABI] layout must match must match GetDriverInfoResults0 in sbigudrv.h */
+struct driver_info_results {
 	unsigned short version;
 	char name[64];
 	unsigned short maxRequest;
-} GetDriverInfoResults0;
+};
 
-typedef enum {
+enum output_register {
 	TRACKING_CLOCKS = 0x00,
 	IMAGING_CLOCKS = 0x10,
 	MICRO_OUT = 0x20,
 	CONTROL_OUT = 0x30,
 	READOUT_CONTROL = 0x00,
 	DEVICE_SELECT = 0x60
-} OUTPUT_REGISTER;
-typedef enum {
+};
+
+enum input_register {
 	AD0 = 0x00,
 	AD1 = 0x10,
 	AD2 = 0x20,
 	AD3_MDI = 0x30
-} INPUT_REGISTER;
-typedef enum {
+};
+
+enum control_bits {
 	HSO = 0x01,
 	MICRO_SELECT = 0x02,
 	IMAGING_SELECT = 0x00,
 	TRACKING_SELECT = 0x04,
 	MICRO_SYNC = 0x04,
 	AD_TRIGGER = 0x08
-} CONTROL_BITS;
+};
 
-typedef enum { V1_H = 1, V2_H = 2, TRG_H = 4, IABG_M = 8 } IMAGING_CLOCK_BITS;
-typedef enum { P1V_H = 1, P2V_H = 2, P1H_L = 8 } KI_CLOCK_BITS;
-typedef enum { IAG_H = 1, TABG_M = 2, BIN = 4, CLR = 8 } TRACKING_CLOCK_BITS;
-typedef enum { KCLR = 0, KBIN1 = 4, KBIN2 = 8, KBIN3 = 12 } KT_CLOCK_BITS;
-typedef enum { IIAG_H = 1, SAG_H = 2, SRG_H = 4, R1_D3 = 8 } CCD_CLOCK_BITS;
-typedef enum {
+enum imaging_clock_bits {
+	V1_H = 1,
+	V2_H = 2,
+	TRG_H = 4,
+	IABG_M = 8
+};
+
+enum ki_clock_bits {
+	P1V_H = 1,
+	P2V_H = 2,
+	P1H_L = 8
+};
+
+enum tracking_clock_bits {
+	IAG_H = 1,
+	TABG_M = 2,
+	BIN = 4,
+	CLR = 8
+};
+
+enum kt_clock_bits {
+	KCLR = 0,
+	KBIN1 = 4,
+	KBIN2 = 8,
+	KBIN3 = 12
+};
+
+enum ccd_clock_bits {
+	IIAG_H = 1,
+	SAG_H = 2,
+	SRG_H = 4,
+	R1_D3 = 8
+};
+
+enum readout_control_bits {
 	CLR_SELECT = 1,
 	R3_D1 = 2,
 	MICRO_CLK_SELECT = 4,
 	PLD_TRIGGER = 8
-} READOUT_CONTROL_BITS;
+};
 
 // This was optimized to remove 2 outportb() calls.
 // Assumes AD3 is addressed coming into it and leaves
@@ -133,7 +166,6 @@ typedef enum {
 	u += (unsigned short)(pd->pp_inb(pd->minor) & 0x78) >> 3; \
 } while (0)
 
-int KLptGetDriverInfo(GetDriverInfoResults0 *);
 int KLptGetJiffies(unsigned long *);
 int KLptGetHz(unsigned long *);
 int KSbigLptGetLastError(unsigned short *);
@@ -166,7 +198,7 @@ void KLptDisableLptInterrupts(struct private_data *);
 void KLptReadyToRx(struct private_data *);
 void KLptForceMicroIdle(struct private_data *);
 int KLptGetBufferSize(struct private_data *);
-int KLptVClockImagingCCD(struct private_data *, CAMERA_TYPE cameraID,
+int KLptVClockImagingCCD(struct private_data *, enum camera_type cameraID,
 			 unsigned char baseClks, short hClears);
 void KLptCameraOut(struct private_data *, unsigned char reg, unsigned char val);
 int KLptSetBufferSize(struct private_data *, spinlock_t *, unsigned short *);
@@ -586,7 +618,7 @@ int KLptHClear(struct private_data *pd, short times)
 // VClockImaginCCD
 // Clock the Imaging CCD vertically one time.
 //========================================================================
-int KLptVClockImagingCCD(struct private_data *pd, CAMERA_TYPE cameraID,
+int KLptVClockImagingCCD(struct private_data *pd, enum camera_type cameraID,
 			 unsigned char baseClks, short hClears)
 {
 	int status = CE_NO_ERROR;
@@ -642,8 +674,8 @@ int KLptVClockImagingCCD(struct private_data *pd, CAMERA_TYPE cameraID,
 // Clear the passed number of pixels in the imaging CCD. Do this in
 // groups of CLEAR_BLOCK with the readout PAL then do the remainder.
 //========================================================================
-int KLptBlockClearPixels(struct private_data *pd, CAMERA_TYPE cameraID,
-			 CCD_REQUEST ccd, short len, short readoutMode)
+int KLptBlockClearPixels(struct private_data *pd, enum camera_type cameraID,
+			 enum ccd_request ccd, short len, short readoutMode)
 {
 	int status = CE_NO_ERROR;
 	short j, bulk, individual;
@@ -717,8 +749,8 @@ int KLptGetPixels(struct private_data *pd, LinuxGetPixelsParams *arg)
 	int status;
 	LinuxGetPixelsParams lgpp;
 	IOC_VCLOCK_CCD_PARAMS ivcp;
-	CAMERA_TYPE cameraID;
-	CCD_REQUEST ccd;
+	enum camera_type cameraID;
+	enum ccd_request ccd;
 	unsigned short u = 0;
 	unsigned short mask;
 	unsigned char ccd_select;
@@ -854,8 +886,8 @@ int KLptGetArea(struct private_data *pd, LinuxGetAreaParams *arg)
 	int status = CE_NO_ERROR;
 	LinuxGetAreaParams lgap;
 	IOC_VCLOCK_CCD_PARAMS ivcp;
-	CAMERA_TYPE cameraID;
-	CCD_REQUEST ccd;
+	enum camera_type cameraID;
+	enum ccd_request ccd;
 	unsigned short u = 0;
 	unsigned short mask;
 	unsigned char ccd_select;
@@ -1003,7 +1035,7 @@ int KLptRVClockImagingCCD(struct private_data *pd,
 			  IOC_VCLOCK_CCD_PARAMS *pParams)
 {
 	int status = CE_NO_ERROR;
-	CAMERA_TYPE cameraID = pParams->cameraID;
+	enum camera_type cameraID = pParams->cameraID;
 	short onVertBin = pParams->onVertBin;
 	short clearWidth = pParams->clearWidth;
 	short i;
@@ -1100,7 +1132,7 @@ int KLptDumpImagingLines(struct private_data *pd, IOC_DUMP_LINES_PARAMS *arg)
 {
 	int status;
 	IOC_DUMP_LINES_PARAMS dlp;
-	CAMERA_TYPE cameraID;
+	enum camera_type cameraID;
 	short width;
 	short len;
 	short vertBin;
@@ -1170,7 +1202,7 @@ int KLptDumpTrackingLines(struct private_data *pd, IOC_DUMP_LINES_PARAMS *arg)
 {
 	int status;
 	IOC_DUMP_LINES_PARAMS dlp;
-	CAMERA_TYPE cameraID;
+	enum camera_type cameraID;
 	short width;
 	short len;
 	short vertBin;
@@ -1226,7 +1258,7 @@ int KLptDumpST5CLines(struct private_data *pd, IOC_DUMP_LINES_PARAMS *arg)
 {
 	int status;
 	IOC_DUMP_LINES_PARAMS dlp;
-	CAMERA_TYPE cameraID;
+	enum camera_type cameraID;
 	short width;
 	short len;
 	short vertBin;
@@ -1307,7 +1339,7 @@ int KLptClockAD(struct private_data *pd, short *arg)
 int KLptClearImagingArray(struct private_data *pd, IOC_CLEAR_CCD_PARAMS *arg)
 {
 	int status = CE_NO_ERROR;
-	CAMERA_TYPE cameraID;
+	enum camera_type cameraID;
 	short height;
 	short times;
 	short i;
@@ -1353,7 +1385,7 @@ int KLptClearImagingArray(struct private_data *pd, IOC_CLEAR_CCD_PARAMS *arg)
 int KLptClearTrackingArray(struct private_data *pd, IOC_CLEAR_CCD_PARAMS *arg)
 {
 	int status = CE_NO_ERROR;
-	CAMERA_TYPE cameraID;
+	enum camera_type cameraID;
 	short height;
 	short times;
 	short i;
@@ -1405,16 +1437,17 @@ int KLptClearTrackingArray(struct private_data *pd, IOC_CLEAR_CCD_PARAMS *arg)
 // KLptGetDriverInfo
 // Return the driver info.
 //========================================================================
-int KLptGetDriverInfo(GetDriverInfoResults0 *results)
+int KLptGetDriverInfo(struct driver_info_results *results)
 {
 	int status;
-	GetDriverInfoResults0 gdir0;
+	struct driver_info_results gdir0;
 
 	gdir0.version = DRIVER_VERSION;
 	strcpy(gdir0.name, DRIVER_STRING);
 	gdir0.maxRequest = 1;
 
-	status = copy_to_user(results, &gdir0, sizeof(GetDriverInfoResults0));
+	status = copy_to_user(results, &gdir0,
+			      sizeof(struct driver_info_results));
 	if (status != 0) {
 		printk(KERN_ERR "%s() : copy_to_user : error\n", __FUNCTION__);
 		gLastError = CE_BAD_PARAMETER;
@@ -1469,7 +1502,7 @@ int KLptSetBufferSize(struct private_data *pd, spinlock_t *lock,
 //========================================================================
 int KLptGetBufferSize(struct private_data *pd)
 {
-	PAR_ERROR status = pd->buffer_size;
+	enum par_error status = pd->buffer_size;
 
 #ifdef _CHATTY_
 	printk(KERN_DEBUG "%s() : %d\n", __FUNCTION__, status);
@@ -1584,7 +1617,7 @@ long KDevIoctl(struct file *filp, unsigned int cmd, unsigned long arg,
 		break;
 
 	case LIOCTL_GET_DRIVER_INFO:
-		status = KLptGetDriverInfo((GetDriverInfoResults0 *)arg);
+		status = KLptGetDriverInfo((struct driver_info_results *)arg);
 		break;
 
 	case LIOCTL_REALLOCATE_PORTS:
