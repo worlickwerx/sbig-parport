@@ -35,11 +35,12 @@
 #define LIOCTL_GET_PIXEL_IN_URB _IOWR(IOCTL_BASE, 35, char *)
 #define LIOCTL_GET_PIXEL_BLOCK _IOWR(IOCTL_BASE, 36, char *)
 
-typedef struct {
+struct ioc_camera_out_params {
 	unsigned char reg;
 	unsigned char value;
-} IOC_CAMERA_OUT_PARAMS;
-typedef struct {
+};
+
+struct ioc_get_pixels_params {
 	short /* CAMERA_TYPE */ cameraID;
 	short /* CCD_REQUEST */ ccd;
 	short left;
@@ -50,26 +51,30 @@ typedef struct {
 	short clearWidth;
 	short st237A;
 	short st253;
-} IOC_GET_PIXELS_PARAMS;
-typedef struct {
+};
+
+struct ioc_vclock_ccd_params {
 	short /* CAMERA_TYPE */ cameraID;
 	short onVertBin;
 	short clearWidth;
-} IOC_VCLOCK_CCD_PARAMS;
-typedef struct {
+};
+
+struct ioc_dump_lines_params {
 	short /* CAMERA_TYPE */ cameraID;
 	short width;
 	short len;
 	short vertBin;
 	short vToHRatio;
 	short st253;
-} IOC_DUMP_LINES_PARAMS;
-typedef struct {
+};
+
+struct ioc_clear_ccd_params {
 	short /* CAMERA_TYPE */ cameraID;
 	short height;
 	short times;
-} IOC_CLEAR_CCD_PARAMS;
-typedef struct {
+};
+
+struct ioc_get_area_params {
 	short /* CAMERA_TYPE */ cameraID;
 	short /* CCD_REQUEST */ ccd;
 	short left;
@@ -80,31 +85,33 @@ typedef struct {
 	short clearWidth;
 	short st237A;
 	short height;
-} IOC_GET_AREA_PARAMS;
+};
 
-typedef struct {
+struct linux_micro_block {
 	unsigned char *pBuffer;
 	unsigned long length;
-} LinuxMicroblock;
-typedef struct {
-	IOC_GET_PIXELS_PARAMS gpp;
+};
+
+struct linux_get_pixels_params {
+	struct ioc_get_pixels_params gpp;
 	unsigned short *dest;
 	unsigned long length;
-} LinuxGetPixelsParams;
-typedef struct {
+};
+
+struct ioc_set_vdd {
 	unsigned short raiseIt;
 	unsigned short vddWasLow;
-} IocSetVdd;
+};
 
-typedef struct {
+struct linux_camera_out_params {
 	unsigned char reg;
 	unsigned char value;
-} LinuxCameraOutParams;
+};
 
-typedef struct {
-	IOC_GET_AREA_PARAMS gap;
+struct linux_get_area_params {
+	struct ioc_get_area_params gap;
 	unsigned short *dest;
 	unsigned long length;
-} LinuxGetAreaParams;
+};
 
 #endif
