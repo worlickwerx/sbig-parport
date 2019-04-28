@@ -1499,13 +1499,12 @@ int KSbigLptGetLastError(unsigned short *arg)
 	return (status);
 }
 //========================================================================
-// KDevIoctl
+// sbig_ioctl - entry point
 //========================================================================
-long KDevIoctl(struct file *filp, unsigned int cmd, unsigned long arg,
-	       spinlock_t *spin_lock)
+long sbig_ioctl(struct sbig_client *pd, unsigned int cmd, unsigned long arg,
+		spinlock_t *spin_lock)
 {
 	int status = CE_NO_ERROR;
-	struct sbig_client *pd = filp->private_data;
 
 	if (_IOC_TYPE(cmd) != IOCTL_BASE) {
 		printk(KERN_ERR "%s() : error: IOCTL base %d, must be %d\n",

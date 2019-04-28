@@ -106,11 +106,13 @@ static int sbig_release(struct inode *inode, struct file *file)
 	return 0;
 }
 
-static long sbig_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
+static long sbig_unlocked_ioctl(struct file *file,
+				unsigned int cmd, unsigned long arg)
 {
+	struct sbig_client *pd = file->private_data;
 	int minor = iminor(file_inode(file));
 
-	return KDevIoctl(file, cmd, arg, &sbig_table[minor].spinlock);
+	return sbig_ioctl(pd, cmd, arg, &sbig_table[minor].spinlock);
 }
 
 static void sbig_attach(struct parport *port)
@@ -161,7 +163,7 @@ static struct file_operations sbig_fops = {
 	.owner = THIS_MODULE,
 	.open = sbig_open,
 	.release = sbig_release,
-	.unlocked_ioctl = sbig_ioctl,
+	.unlocked_ioctl = sbig_unlocked_ioctl,
 };
 
 static int sbig_init_module(void)

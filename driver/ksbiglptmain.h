@@ -25,6 +25,7 @@ struct sbig_client {
 	unsigned int minor;
 };
 
-long KDevIoctl(struct file *, unsigned int, unsigned long, spinlock_t *);
+long sbig_ioctl(struct sbig_client *pd, unsigned int cmd, unsigned long arg,
+		spinlock_t *spin_lock);
 
 #endif
