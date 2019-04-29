@@ -33,7 +33,7 @@ static struct {
 	struct pardevice *dev;
 	spinlock_t spinlock;
 } sbig_table[SBIG_NO];
-static unsigned int sbig_count = 0;
+static unsigned int sbig_count;
 
 static dev_t sbig_dev;
 static struct class *sbig_class;
