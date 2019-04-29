@@ -68,11 +68,13 @@ static int sbig_open(struct inode *inode, struct file *file)
 		rc = -EBUSY;
 		goto out_unlock;
 	}
-	if (!(pd = kmalloc(sizeof(*pd), GFP_KERNEL))) {
+	pd = kmalloc(sizeof(*pd), GFP_KERNEL);
+	if (!pd) {
 		rc = -ENOMEM;
 		goto out_unlock;
 	}
-	if (!(pd->buffer = kmalloc(LDEFAULT_BUFFER_SIZE, GFP_KERNEL))) {
+	pd->buffer = kmalloc(LDEFAULT_BUFFER_SIZE, GFP_KERNEL);
+	if (!pd->buffer) {
 		kfree(pd);
 		rc = -ENOMEM;
 		goto out_unlock;
@@ -172,7 +174,8 @@ static int sbig_init_module(void)
 		printk(KERN_ERR "sbiglpt: alloc_chrdev_region failed\n");
 		goto out;
 	}
-	if (!(sbig_class = class_create(THIS_MODULE, "chardrv"))) {
+	sbig_class = class_create(THIS_MODULE, "chardrv");
+	if (!sbig_class) {
 		printk(KERN_ERR "sbiglpt: class_create failed\n");
 		goto out_reg;
 	}

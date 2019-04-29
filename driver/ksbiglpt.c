@@ -572,7 +572,8 @@ int KLptHClear(struct sbig_client *pd, short times)
 		KLptCameraOut(pd, CONTROL_OUT, IMAGING_SELECT);
 
 		// wait for PLD
-		if ((status = KLptWaitForPLD(pd)) != CE_NO_ERROR) {
+		status = KLptWaitForPLD(pd);
+		if (status != CE_NO_ERROR) {
 			return (gLastError = status);
 		}
 	}
@@ -666,19 +667,23 @@ int KLptVClockImagingCCD(struct sbig_client *pd, enum camera_type cameraID,
 	if (cameraID == ST1K_CAMERA && hClears != 0) {
 		KLptCameraOut(pd, IMAGING_CLOCKS,
 			      (unsigned char)(baseClks | v1_h)); // V1 high
-		if ((status = KLptHClear(pd, hClears)) != CE_NO_ERROR)
+		status = KLptHClear(pd, hClears);
+		if (status != CE_NO_ERROR)
 			return (gLastError = status);
 		KLptCameraOut(pd, IMAGING_CLOCKS,
 			      (unsigned char)(baseClks | v2_h)); // V2 high
-		if ((status = KLptHClear(pd, hClears)) != CE_NO_ERROR)
+		status = KLptHClear(pd, hClears);
+		if (status != CE_NO_ERROR)
 			return (gLastError = status);
 		KLptCameraOut(pd, IMAGING_CLOCKS,
 			      (unsigned char)(baseClks | v1_h)); // V1 high
-		if ((status = KLptHClear(pd, hClears)) != CE_NO_ERROR)
+		status = KLptHClear(pd, hClears);
+		if (status != CE_NO_ERROR)
 			return (gLastError = status);
 		KLptCameraOut(pd, IMAGING_CLOCKS,
 			      (unsigned char)(baseClks)); // all low
-		if ((status = KLptHClear(pd, hClears)) != CE_NO_ERROR)
+		status = KLptHClear(pd, hClears);
+		if (status != CE_NO_ERROR)
 			return (gLastError = status);
 	} else {
 		KLptCameraOut(pd, IMAGING_CLOCKS,
@@ -727,7 +732,8 @@ int KLptBlockClearPixels(struct sbig_client *pd, enum camera_type cameraID,
 		KLptCameraOut(pd, CONTROL_OUT,
 			      (unsigned char)(ccd_select + AD_TRIGGER));
 		KLptCameraOut(pd, CONTROL_OUT, ccd_select);
-		if ((status = KLptWaitForPLD(pd)) != CE_NO_ERROR)
+		status = KLptWaitForPLD(pd);
+		if (status != CE_NO_ERROR)
 			return (gLastError = status);
 	}
 
@@ -752,7 +758,8 @@ int KLptBlockClearPixels(struct sbig_client *pd, enum camera_type cameraID,
 		KLptCameraOut(pd, CONTROL_OUT,
 			      (unsigned char)(ccd_select + AD_TRIGGER));
 		KLptCameraOut(pd, CONTROL_OUT, ccd_select);
-		if ((status = KLptWaitForPLD(pd)) != CE_NO_ERROR)
+		status = KLptWaitForPLD(pd);
+		if (status != CE_NO_ERROR)
 			return (gLastError = status);
 	}
 	return (status);
@@ -848,15 +855,17 @@ int KLptGetPixels(struct sbig_client *pd, unsigned long arg)
 	// discard unused pixels on left and fill pipeline
 	// using the block clear function
 	ccd_select = (ccd == CCD_IMAGING ? IMAGING_SELECT : TRACKING_SELECT);
-	if (left != 0 && (status = KLptBlockClearPixels(pd, cameraID, ccd, left,
-							0)) != CE_NO_ERROR) {
-		KEnable(pd);
-		return (gLastError = status);
+	if (left != 0) {
+		status = KLptBlockClearPixels(pd, cameraID, ccd, left, 0);
+		if  (status != CE_NO_ERROR) {
+			KEnable(pd);
+			return (gLastError = status);
+		}
 	}
 
-	if ((status = KLptBlockClearPixels(pd, cameraID, ccd, 2,
-					   (short)(horzBin - 1))) !=
-	    CE_NO_ERROR) {
+	status = KLptBlockClearPixels(pd, cameraID, ccd, 2,
+				      (short)(horzBin - 1));
+	if (status != CE_NO_ERROR) {
 		KEnable(pd);
 		return (gLastError = status);
 	}
@@ -901,7 +910,8 @@ int KLptGetPixels(struct sbig_client *pd, unsigned long arg)
 	KEnable(pd);
 
 	// wait for last A/D
-	if ((status = KLptWaitForAD(pd)) != CE_NO_ERROR)
+	status = KLptWaitForAD(pd);
+	if (status != CE_NO_ERROR)
 		return (status);
 
 	// discard unused right pixels
@@ -993,16 +1003,18 @@ int KLptGetArea(struct sbig_client *pd, unsigned long arg)
 		// using the block clear function
 		ccd_select =
 			(ccd == CCD_IMAGING ? IMAGING_SELECT : TRACKING_SELECT);
-		if (left != 0 &&
-		    (status = KLptBlockClearPixels(pd, cameraID, ccd, left,
-						   0)) != CE_NO_ERROR) {
-			KEnable(pd);
-			return (gLastError = status);
+		if (left != 0) {
+			status = KLptBlockClearPixels(pd, cameraID,
+						      ccd, left, 0);
+			if (status != CE_NO_ERROR) {
+				KEnable(pd);
+				return (gLastError = status);
+			}
 		}
 
-		if ((status = KLptBlockClearPixels(pd, cameraID, ccd, 2,
-						   (short)(horzBin - 1))) !=
-		    CE_NO_ERROR) {
+		status = KLptBlockClearPixels(pd, cameraID, ccd, 2,
+					      (short)(horzBin - 1));
+		if (status != CE_NO_ERROR) {
 			KEnable(pd);
 			return (gLastError = status);
 		}
@@ -1047,7 +1059,8 @@ int KLptGetArea(struct sbig_client *pd, unsigned long arg)
 		KEnable(pd);
 
 		// wait for last A/D
-		if ((status = KLptWaitForAD(pd)) != CE_NO_ERROR)
+		status = KLptWaitForAD(pd);
+		if (status != CE_NO_ERROR)
 			return (gLastError = status);
 
 		// discard unused right pixels
@@ -1263,7 +1276,8 @@ int KLptClockAD(struct sbig_client *pd, unsigned long arg)
 	unsigned short u;
 
 	// get arg value
-	if ((status = get_user(len, (unsigned short __user *)arg)) != 0) {
+	status = get_user(len, (unsigned short __user *)arg);
+	if (status != 0) {
 		printk(KERN_ERR "%s() : get_user() : error\n", __FUNCTION__);
 		gLastError = CE_BAD_PARAMETER;
 		return (status);
@@ -1272,7 +1286,8 @@ int KLptClockAD(struct sbig_client *pd, unsigned long arg)
 	KLptCameraOut(pd, TRACKING_CLOCKS, KBIN1);
 	while (len) {
 		// wait for A/D
-		if ((status = KLptWaitForAD(pd)) != CE_NO_ERROR) {
+		status = KLptWaitForAD(pd);
+		if (status != CE_NO_ERROR) {
 			return (gLastError = status);
 		}
 		// trigger A/D for next cycle
@@ -1383,7 +1398,8 @@ int KLptClearTrackingArray(struct sbig_client *pd, unsigned long arg)
 
 		KEnable(pd);
 
-		if ((status = KLptWaitForPLD(pd)) != CE_NO_ERROR) {
+		status = KLptWaitForPLD(pd);
+		if (status != CE_NO_ERROR) {
 			return (gLastError = status);
 		}
 	}
