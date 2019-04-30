@@ -101,8 +101,7 @@ static int sbig_release(struct inode *inode, struct file *file)
 	struct sbig_client *pd = file->private_data;
 
 	if (pd) {
-		if (pd->buffer)
-			kfree(pd->buffer);
+		kfree(pd->buffer);
 		kfree(pd);
 		file->private_data = NULL;
 	}
