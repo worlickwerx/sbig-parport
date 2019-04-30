@@ -8,23 +8,13 @@
  * Copyright (c) 2017 by Jim Garlick
  */
 
-#include <linux/init.h>
 #include <linux/module.h>
-#include <linux/kernel.h>
-#include <linux/sched.h>
 #include <linux/slab.h>
-#include <linux/timer.h>
 #include <linux/fs.h>
-#include <linux/poll.h>
-#include <linux/proc_fs.h>
-#include <linux/sysctl.h>
-#include <linux/init.h>
-#include <linux/ioport.h>
-#include <linux/tty.h>
 #include <linux/delay.h>
 #include <linux/device.h>
+#include <linux/cdev.h>
 #include <linux/parport.h>
-#include <asm/io.h>
 
 #include "ksbiglptmain.h"
 
