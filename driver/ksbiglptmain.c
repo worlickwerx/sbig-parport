@@ -162,7 +162,7 @@ static struct parport_driver sbig_driver = {
 	.detach = sbig_detach,
 };
 
-static struct file_operations sbig_fops = {
+static const struct file_operations sbig_fops = {
 	.owner = THIS_MODULE,
 	.open = sbig_open,
 	.release = sbig_release,
