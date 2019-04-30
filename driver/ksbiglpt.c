@@ -211,8 +211,7 @@ int KLptCameraOutWrapper(struct sbig_client *pd,
 				(struct linux_camera_out_params __user *)arg,
 				sizeof(struct linux_camera_out_params));
 	if (status != 0) {
-		printk(KERN_ERR "%s() : copy_from_user : error\n",
-		       __FUNCTION__);
+		printk(KERN_ERR "%s() : copy_from_user : error\n", __func__);
 		gLastError = CE_BAD_PARAMETER;
 		return -EFAULT;
 	}
@@ -300,7 +299,7 @@ int KLptSendMicroBlock(struct sbig_client *pd, unsigned long arg)
 				sizeof(struct linux_micro_block));
 	if (status != 0) {
 		printk(KERN_ERR "%s() : copy_from_user : lmb error.\n",
-		       __FUNCTION__);
+		       __func__);
 		gLastError = CE_BAD_PARAMETER;
 		return -EFAULT;
 	}
@@ -308,7 +307,7 @@ int KLptSendMicroBlock(struct sbig_client *pd, unsigned long arg)
 	status = copy_from_user(p, lmb.pBuffer, lmb.length);
 	if (status != 0) {
 		printk(KERN_ERR "%s() : copy_from_user : lmb.pData error.\n",
-		       __FUNCTION__);
+		       __func__);
 		gLastError = CE_BAD_PARAMETER;
 		return -EFAULT;
 	}
@@ -367,7 +366,7 @@ int KLptGetMicroBlock(struct sbig_client *pd, unsigned long arg)
 				sizeof(struct linux_micro_block));
 	if (status != 0) {
 		printk(KERN_ERR "%s() : copy_from_user : lmb error.\n",
-		       __FUNCTION__);
+		       __func__);
 		gLastError = CE_BAD_PARAMETER;
 		return -EFAULT;
 	}
@@ -458,7 +457,7 @@ int KLptGetMicroBlock(struct sbig_client *pd, unsigned long arg)
 	status = copy_to_user(lmb.pBuffer, pd->buffer, lmb.length);
 	if (status != 0) {
 		printk(KERN_ERR "%s() : copy_to_user : lmb.pData : error.\n",
-		       __FUNCTION__);
+		       __func__);
 		gLastError = CE_BAD_PARAMETER;
 		return -EFAULT;
 	}
@@ -474,8 +473,7 @@ int KLptSetVdd(struct sbig_client *pd, unsigned long arg)
 
 	if (copy_from_user(&svdd, (struct ioc_set_vdd __user *)arg,
 			   sizeof(struct ioc_set_vdd)) != 0) {
-		printk(KERN_ERR "%s() : copy_from_user : error\n",
-		       __FUNCTION__);
+		printk(KERN_ERR "%s() : copy_from_user : error\n", __func__);
 		gLastError = CE_BAD_PARAMETER;
 		return -EFAULT;
 	}
@@ -488,7 +486,7 @@ int KLptSetVdd(struct sbig_client *pd, unsigned long arg)
 	if (copy_to_user((struct ioc_set_vdd __user *)arg, &svdd,
 			 sizeof(struct ioc_set_vdd)) != 0) {
 		printk(KERN_ERR "%s() : copy_to_user : svdd : error\n",
-		       __FUNCTION__);
+		       __func__);
 		gLastError = CE_BAD_PARAMETER;
 		return -EFAULT;
 	}
@@ -812,7 +810,7 @@ int KLptGetPixels(struct sbig_client *pd, unsigned long arg)
 				sizeof(struct linux_get_pixels_params));
 	if (status != 0) {
 		printk(KERN_ERR "%s() : copy_from_user : error\n",
-		       __FUNCTION__);
+		       __func__);
 		gLastError = CE_BAD_PARAMETER;
 		return -EFAULT;
 	}
@@ -922,7 +920,7 @@ int KLptGetPixels(struct sbig_client *pd, unsigned long arg)
 	status = copy_to_user(lgpp.dest, pd->buffer, lgpp.length);
 	if (status != 0) {
 		printk(KERN_ERR "%s() : copy_to_user : lgpp.dest : error\n",
-		       __FUNCTION__);
+		       __func__);
 		gLastError = CE_BAD_PARAMETER;
 		return -EFAULT;
 	}
@@ -952,7 +950,7 @@ int KLptGetArea(struct sbig_client *pd, unsigned long arg)
 				sizeof(struct linux_get_area_params));
 	if (status != 0) {
 		printk(KERN_ERR "%s() : copy_from_user : error\n",
-		       __FUNCTION__);
+		       __func__);
 		gLastError = CE_BAD_PARAMETER;
 		return -EFAULT;
 	}
@@ -1072,7 +1070,7 @@ int KLptGetArea(struct sbig_client *pd, unsigned long arg)
 	status = copy_to_user(lgap.dest, pd->buffer, lgap.length);
 	if (status != 0) {
 		printk(KERN_ERR "%s() : copy_to_user : lgap.dest : error\n",
-		       __FUNCTION__);
+		       __func__);
 		gLastError = CE_BAD_PARAMETER;
 		return -EFAULT;
 	}
@@ -1105,8 +1103,7 @@ int KLptDumpImagingLines(struct sbig_client *pd, unsigned long arg)
 				(struct ioc_dump_lines_params __user *)arg,
 				sizeof(struct ioc_dump_lines_params));
 	if (status != 0) {
-		printk(KERN_ERR "%s() : copy_from_user : error\n",
-		       __FUNCTION__);
+		printk(KERN_ERR "%s() : copy_from_user : error\n", __func__);
 		gLastError = CE_BAD_PARAMETER;
 		return -EFAULT;
 	}
@@ -1172,8 +1169,7 @@ int KLptDumpTrackingLines(struct sbig_client *pd, unsigned long arg)
 				(struct ioc_dump_lines_params __user *)arg,
 				sizeof(struct ioc_dump_lines_params));
 	if (status != 0) {
-		printk(KERN_ERR "%s() : copy_from_user : error\n",
-		       __FUNCTION__);
+		printk(KERN_ERR "%s() : copy_from_user : error\n", __func__);
 		gLastError = CE_BAD_PARAMETER;
 		return -EFAULT;
 	}
@@ -1228,8 +1224,7 @@ int KLptDumpST5CLines(struct sbig_client *pd, unsigned long arg)
 				(struct ioc_dump_lines_params __user *)arg,
 				sizeof(struct ioc_dump_lines_params));
 	if (status != 0) {
-		printk(KERN_ERR "%s() : copy_from_user : error\n",
-		       __FUNCTION__);
+		printk(KERN_ERR "%s() : copy_from_user : error\n", __func__);
 		gLastError = CE_BAD_PARAMETER;
 		return -EFAULT;
 	}
@@ -1269,7 +1264,7 @@ int KLptClockAD(struct sbig_client *pd, unsigned long arg)
 	// get arg value
 	status = get_user(len, (unsigned short __user *)arg);
 	if (status != 0) {
-		printk(KERN_ERR "%s() : get_user() : error\n", __FUNCTION__);
+		printk(KERN_ERR "%s() : get_user() : error\n", __func__);
 		gLastError = CE_BAD_PARAMETER;
 		return status;
 	}
@@ -1310,8 +1305,7 @@ int KLptClearImagingArray(struct sbig_client *pd, unsigned long arg)
 				(struct ioc_clear_ccd_params __user *)arg,
 				sizeof(struct ioc_clear_ccd_params));
 	if (status != 0) {
-		printk(KERN_ERR "%s() : copy_from_user : error\n",
-		       __FUNCTION__);
+		printk(KERN_ERR "%s() : copy_from_user : error\n", __func__);
 		gLastError = CE_BAD_PARAMETER;
 		return -EFAULT;
 	}
@@ -1356,8 +1350,7 @@ int KLptClearTrackingArray(struct sbig_client *pd, unsigned long arg)
 				(struct ioc_clear_ccd_params __user *)arg,
 				sizeof(struct ioc_clear_ccd_params));
 	if (status != 0) {
-		printk(KERN_ERR "%s() : copy_from_user : error\n",
-		       __FUNCTION__);
+		printk(KERN_ERR "%s() : copy_from_user : error\n", __func__);
 		gLastError = CE_BAD_PARAMETER;
 		return -EFAULT;
 	}
@@ -1410,7 +1403,7 @@ int KLptGetDriverInfo(unsigned long arg)
 	status = copy_to_user((struct driver_info_results __user *)arg,
 			      &gdir0, sizeof(struct driver_info_results));
 	if (status != 0) {
-		printk(KERN_ERR "%s() : copy_to_user : error\n", __FUNCTION__);
+		printk(KERN_ERR "%s() : copy_to_user : error\n", __func__);
 		gLastError = CE_BAD_PARAMETER;
 		return -EFAULT;
 	}
@@ -1427,7 +1420,7 @@ int KLptSetBufferSize(struct sbig_client *pd, spinlock_t *lock,
 	// get size of the new buffer, ie. read unsigned short
 	status = get_user(buffer_size, (unsigned short __user *)arg);
 	if (status != 0) {
-		printk(KERN_ERR "%s() : get_user() : error\n", __FUNCTION__);
+		printk(KERN_ERR "%s() : get_user() : error\n", __func__);
 		gLastError = CE_BAD_PARAMETER;
 		return -EFAULT;
 	}
@@ -1436,7 +1429,7 @@ int KLptSetBufferSize(struct sbig_client *pd, spinlock_t *lock,
 	kbuff = kmalloc(buffer_size, GFP_KERNEL);
 	if (kbuff == NULL) {
 		printk(KERN_ERR "%s() : kmalloc() : new size : %d : error\n",
-		       __FUNCTION__, buffer_size);
+		       __func__, buffer_size);
 		// allocation failed, return previous buffer size
 		return pd->buffer_size;
 	}
@@ -1452,7 +1445,7 @@ int KLptSetBufferSize(struct sbig_client *pd, spinlock_t *lock,
 
 	status = pd->buffer_size;
 #ifdef _CHATTY_
-	printk(KERN_DEBUG "%s() : %d\n", __FUNCTION__, status);
+	printk(KERN_DEBUG "%s() : %d\n", __func__, status);
 #endif
 	return status;
 }
@@ -1462,7 +1455,7 @@ int KLptGetBufferSize(struct sbig_client *pd)
 	enum par_error status = pd->buffer_size;
 
 #ifdef _CHATTY_
-	printk(KERN_DEBUG "%s() : %d\n", __FUNCTION__, status);
+	printk(KERN_DEBUG "%s() : %d\n", __func__, status);
 #endif
 	return status;
 }
@@ -1470,7 +1463,7 @@ int KLptGetBufferSize(struct sbig_client *pd)
 int KLptTestCommand(void)
 {
 #ifdef _CHATTY_
-	printk(KERN_DEBUG "%s() : ok\n", __FUNCTION__);
+	printk(KERN_DEBUG "%s() : ok\n", __func__);
 #endif
 	return CE_NO_ERROR;
 }
@@ -1517,7 +1510,7 @@ long sbig_ioctl(struct sbig_client *pd, unsigned int cmd, unsigned long arg,
 
 	if (_IOC_TYPE(cmd) != IOCTL_BASE) {
 		printk(KERN_ERR "%s() : error: IOCTL base %d, must be %d\n",
-		       __FUNCTION__, _IOC_TYPE(cmd), IOCTL_BASE);
+		       __func__, _IOC_TYPE(cmd), IOCTL_BASE);
 		gLastError = CE_BAD_PARAMETER;
 		return -ENOTTY;
 	}
