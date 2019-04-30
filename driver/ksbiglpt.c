@@ -1427,12 +1427,8 @@ int KLptSetBufferSize(struct sbig_client *pd, spinlock_t *lock,
 
 	// allocate new kernel-space I/O buffer
 	kbuff = kmalloc(buffer_size, GFP_KERNEL);
-	if (kbuff == NULL) {
-		printk(KERN_ERR "%s() : kmalloc() : new size : %d : error\n",
-		       __func__, buffer_size);
-		// allocation failed, return previous buffer size
+	if (kbuff == NULL)
 		return pd->buffer_size;
-	}
 
 	// set pointer to new I/O buffer and swap buffers
 	pd->buffer_size = buffer_size;
