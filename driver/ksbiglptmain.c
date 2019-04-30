@@ -39,19 +39,6 @@ static dev_t sbig_dev;
 static struct class *sbig_class;
 static struct cdev sbig_cdev;
 
-static void sbig_outb(uint8_t data, unsigned int minor)
-{
-	struct parport *port = sbig_table[minor].dev->port;
-
-	port->ops->write_data(port, data);
-}
-
-static uint8_t sbig_inb(unsigned int minor)
-{
-	struct parport *port = sbig_table[minor].dev->port;
-
-	return port->ops->read_status(port);
-}
 
 static int sbig_open(struct inode *inode, struct file *file)
 {
@@ -86,9 +73,7 @@ static int sbig_open(struct inode *inode, struct file *file)
 	pd->noBytesRd = 0;
 	pd->noBytesWr = 0;
 	pd->state = 0;
-	pd->pp_outb = sbig_outb;
-	pd->pp_inb = sbig_inb;
-	pd->minor = minor;
+	pd->port = sbig_table[minor].dev->port;
 	file->private_data = pd;
 out_unlock:
 	spin_unlock(&sbig_table[minor].spinlock);
