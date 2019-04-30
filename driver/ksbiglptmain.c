@@ -99,6 +99,7 @@ out:
 static int sbig_release(struct inode *inode, struct file *file)
 {
 	struct sbig_client *pd = file->private_data;
+
 	if (pd) {
 		if (pd->buffer)
 			kfree(pd->buffer);
@@ -202,6 +203,7 @@ out:
 static void sbig_cleanup_module(void)
 {
 	int nr;
+
 	parport_unregister_driver(&sbig_driver);
 	cdev_del(&sbig_cdev);
 	for (nr = 0; nr < sbig_count; nr++) {
