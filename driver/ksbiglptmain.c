@@ -60,19 +60,13 @@ static int sbig_open(struct inode *inode, struct file *file)
 		rc = -ENOMEM;
 		goto out_unlock;
 	}
-	pd->buffer = kmalloc(LDEFAULT_BUFFER_SIZE, GFP_KERNEL);
+	pd->buffer = kzalloc(LDEFAULT_BUFFER_SIZE, GFP_KERNEL);
 	if (!pd->buffer) {
 		kfree(pd);
 		rc = -ENOMEM;
 		goto out_unlock;
 	}
 	pd->buffer_size = LDEFAULT_BUFFER_SIZE;
-	pd->flags = 0;
-	pd->control_out = 0;
-	pd->imaging_clocks_out = 0;
-	pd->noBytesRd = 0;
-	pd->noBytesWr = 0;
-	pd->state = 0;
 	pd->port = sbig_table[minor].dev->port;
 	file->private_data = pd;
 out_unlock:
