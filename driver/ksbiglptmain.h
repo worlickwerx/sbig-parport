@@ -34,6 +34,15 @@ static inline u8 sbig_inb(struct sbig_client *pd)
 	return pd->port->ops->read_status(pd->port);
 }
 
+#define sbig_dbg(pd, fmt, arg...) \
+	dev_dbg((pd)->port->dev, fmt, ##arg)
+
+#define sbig_info(pd, fmt, arg...) \
+	dev_info((pd)->port->dev, fmt, ##arg)
+
+#define sbig_err(pd, fmt, arg...) \
+	dev_err((pd)->port->dev, fmt, ##arg)
+
 long sbig_ioctl(struct sbig_client *pd, unsigned int cmd, unsigned long arg,
 		spinlock_t *spin_lock);
 

@@ -107,37 +107,36 @@ static void sbig_attach(struct parport *port)
 	int nr = 0 + sbig_count;
 
 	if (!(port->modes & PARPORT_MODE_PCSPP)) {
-		printk(KERN_INFO "sbiglpt: ignoring %s - no SPP capability\n",
-		       port->name);
+		dev_info(port->dev, "ignoring %s - no SPP capability\n",
+			 port->name);
 		return;
 	}
 	if (nr == SBIG_NO) {
-		printk(KERN_INFO "sbiglpt: ignoring %s - max %d reached\n",
-		       port->name, SBIG_NO);
+		dev_info(port->dev, "ignoring %s - max %d reached\n",
+			 port->name, SBIG_NO);
 		return;
 	}
 	sbig_table[nr].dev = parport_register_device(port, "sbiglpt", NULL,
 						     NULL, NULL, 0, NULL);
 	if (sbig_table[nr].dev == NULL) {
-		printk(KERN_ERR "sbiglpt%d: parport_register_device failed\n",
-		       nr);
+		dev_err(port->dev, "parport_register_device failed\n");
 		return;
 	}
 	if (parport_claim(sbig_table[nr].dev)) {
 		parport_unregister_device(sbig_table[nr].dev);
-		printk(KERN_ERR "sbiglpt%d: parport_claim failed\n", nr);
+		dev_err(port->dev, "parport_claim failed\n");
 		return;
 	}
 	device_create(sbig_class, port->dev, MKDEV(MAJOR(sbig_dev), nr), NULL,
 		      "sbiglpt%d", nr);
 	spin_lock_init(&sbig_table[nr].spinlock);
 	sbig_count++;
-	printk(KERN_INFO "sbiglpt%d: using %s\n", nr, port->name);
+	dev_info(port->dev, "%s claimed by sbiglpt%d\n", port->name, nr);
 }
 
 static void sbig_detach(struct parport *port)
 {
-	//printk(KERN_INFO "sbiglpt: detach %s\n", port->name);
+	//dev_info(port->dev, "detach %s\n", port->name);
 }
 
 static struct parport_driver sbig_driver = {
@@ -156,21 +155,21 @@ static const struct file_operations sbig_fops = {
 static int sbig_init_module(void)
 {
 	if (alloc_chrdev_region(&sbig_dev, 0, SBIG_NO, "sbiglpt") < 0) {
-		printk(KERN_ERR "sbiglpt: alloc_chrdev_region failed\n");
+		pr_err("sbiglpt: alloc_chrdev_region failed\n");
 		goto out;
 	}
 	sbig_class = class_create(THIS_MODULE, "chardrv");
 	if (!sbig_class) {
-		printk(KERN_ERR "sbiglpt: class_create failed\n");
+		pr_err("sbiglpt: class_create failed\n");
 		goto out_reg;
 	}
 	cdev_init(&sbig_cdev, &sbig_fops);
 	if (cdev_add(&sbig_cdev, sbig_dev, SBIG_NO) < 0) {
-		printk(KERN_ERR "sbiglpt: cdev_add failed\n");
+		pr_err("sbiglpt: cdev_add failed\n");
 		goto out_class;
 	}
 	if (parport_register_driver(&sbig_driver)) {
-		printk(KERN_ERR "sbiglpt: parport_register_driver failed\n");
+		pr_err("sbiglpt: parport_register_driver failed\n");
 		goto out_cdev;
 	}
 	return (0);
