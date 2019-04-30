@@ -181,11 +181,10 @@ void KLptCameraOut(struct sbig_client *pd, unsigned char reg,
 	pd->pp_outb((unsigned char)(reg + val + 0x80), pd->minor);
 	pd->pp_outb((unsigned char)(reg + val), pd->minor);
 
-	if (reg == CONTROL_OUT) {
+	if (reg == CONTROL_OUT)
 		pd->control_out = val;
-	} else if (reg == IMAGING_CLOCKS) {
+	else if (reg == IMAGING_CLOCKS)
 		pd->imaging_clocks_out = val;
-	}
 }
 //========================================================================
 // KLptForceMicroIdle
@@ -521,9 +520,8 @@ void KEnable(struct sbig_client *pd)
 //========================================================================
 void KLptIoDelay(struct sbig_client *pd, short i)
 {
-	for (; i > 0; i--) {
+	for (; i > 0; i--)
 		pd->pp_inb(pd->minor);
-	}
 }
 //========================================================================
 // KLptWaitForPLD
@@ -573,9 +571,8 @@ int KLptHClear(struct sbig_client *pd, short times)
 
 		// wait for PLD
 		status = KLptWaitForPLD(pd);
-		if (status != CE_NO_ERROR) {
+		if (status != CE_NO_ERROR)
 			return (gLastError = status);
-		}
 	}
 	return CE_NO_ERROR;
 }
@@ -787,9 +784,8 @@ int KLptRVClockImagingCCD(struct sbig_client *pd,
 	KDisable(pd);
 	// select imaging CCD
 	KLptCameraOut(pd, CONTROL_OUT, IMAGING_SELECT);
-	for (i = 0; i < onVertBin; i++) {
+	for (i = 0; i < onVertBin; i++)
 		KLptVClockImagingCCD(pd, cameraID, IABG_M, 0);
-	}
 	KEnable(pd);
 	return CE_NO_ERROR;
 }
@@ -844,13 +840,12 @@ int KLptGetPixels(struct sbig_client *pd, unsigned long arg)
 	ivcp.clearWidth = lgpp.gpp.clearWidth;
 	ivcp.onVertBin = lgpp.gpp.vertBin;
 
-	if (cameraID == ST5C_CAMERA || cameraID == ST237_CAMERA) {
+	if (cameraID == ST5C_CAMERA || cameraID == ST237_CAMERA)
 		KLptRVClockST5CCCD(pd, &ivcp);
-	} else if (ccd == CCD_IMAGING) {
+	else if (ccd == CCD_IMAGING)
 		KLptRVClockImagingCCD(pd, &ivcp);
-	} else {
+	else
 		KLptRVClockTrackingCCD(pd, &ivcp);
-	}
 
 	// discard unused pixels on left and fill pipeline
 	// using the block clear function
@@ -977,13 +972,11 @@ int KLptGetArea(struct sbig_client *pd, unsigned long arg)
 	mask = (cameraID == ST237_CAMERA && !lgap.gap.st237A) ? 0x0FFF : 0xFFFF;
 
 	// check input parameters
-	if (lgap.length != (unsigned long)height * len * 2) {
+	if (lgap.length != (unsigned long)height * len * 2)
 		return (gLastError = CE_BAD_PARAMETER);
-	}
 	// check if internal data buffer is long enough
-	if (pd->buffer_size < (unsigned long)height * len * 2) {
+	if (pd->buffer_size < (unsigned long)height * len * 2)
 		return (gLastError = CE_BAD_PARAMETER);
-	}
 	for (i = 0; i < height; i++) {
 		// set actual buffer position
 		p = kbuf + i * 2 * len;
@@ -991,13 +984,12 @@ int KLptGetArea(struct sbig_client *pd, unsigned long arg)
 		KDisable(pd);
 
 		// do a vertical clock
-		if (cameraID == ST5C_CAMERA || cameraID == ST237_CAMERA) {
+		if (cameraID == ST5C_CAMERA || cameraID == ST237_CAMERA)
 			KLptRVClockST5CCCD(pd, &ivcp);
-		} else if (ccd == CCD_IMAGING) {
+		else if (ccd == CCD_IMAGING)
 			KLptRVClockImagingCCD(pd, &ivcp);
-		} else {
+		else
 			KLptRVClockTrackingCCD(pd, &ivcp);
-		}
 
 		// discard unused pixels on left and fill pipeline
 		// using the block clear function
@@ -1132,11 +1124,10 @@ int KLptDumpImagingLines(struct sbig_client *pd, unsigned long arg)
 
 	KLptCameraOut(pd, CONTROL_OUT, IMAGING_SELECT);
 
-	if (dlp.vToHRatio == 0) {
+	if (dlp.vToHRatio == 0)
 		dumpRatio = DUMP_RATIO;
-	} else {
+	else
 		dumpRatio = dlp.vToHRatio;
-	}
 
 	for (i = 0; i < len; i++) {
 		// do vertical shift of lines
@@ -1287,9 +1278,8 @@ int KLptClockAD(struct sbig_client *pd, unsigned long arg)
 	while (len) {
 		// wait for A/D
 		status = KLptWaitForAD(pd);
-		if (status != CE_NO_ERROR) {
+		if (status != CE_NO_ERROR)
 			return (gLastError = status);
-		}
 		// trigger A/D for next cycle
 		KLptCameraOut(pd, CONTROL_OUT, AD_TRIGGER);
 		KLptCameraOut(pd, CONTROL_OUT, 0);
@@ -1399,9 +1389,8 @@ int KLptClearTrackingArray(struct sbig_client *pd, unsigned long arg)
 		KEnable(pd);
 
 		status = KLptWaitForPLD(pd);
-		if (status != CE_NO_ERROR) {
+		if (status != CE_NO_ERROR)
 			return (gLastError = status);
-		}
 	}
 	return CE_NO_ERROR;
 }
