@@ -11,3 +11,7 @@ all: modules
 
 modules clean:
 	make -C $(KERNEL_PATH) M=$(shell pwd) $@
+
+check:
+	scripts/checkpatch.pl --no-tree -f --ignore=LINUX_VERSION_CODE \
+		ksbiglpt.c ksbiglptmain.c ksbiglptmain.h ulptdrv.h
