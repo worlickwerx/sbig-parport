@@ -12,13 +12,10 @@
 #define LDEFAULT_BUFFER_SIZE 4096
 
 struct sbig_client {
-	unsigned long flags;
-	unsigned long value;
 	unsigned char control_out;
 	unsigned char imaging_clocks_out;
 	unsigned char noBytesRd;
 	unsigned char noBytesWr;
-	unsigned short state;
 	unsigned short buffer_size;
 	char *buffer;
 	struct parport *port;

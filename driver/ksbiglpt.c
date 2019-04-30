@@ -341,7 +341,6 @@ int KLptSendMicroBlock(struct sbig_client *pd, unsigned long arg)
 		}
 	}
 	pd->noBytesWr = (i + 1) / 2;
-	pd->state = i;
 
 	return status;
 }
@@ -446,7 +445,6 @@ int KLptGetMicroBlock(struct sbig_client *pd, unsigned long arg)
 	} while ((state < 5) && (status == CE_NO_ERROR) && (rx_len < cmp_len));
 
 	pd->noBytesRd = (unsigned long)(rx_len / 2);
-	pd->state = state;
 
 	if (status != CE_NO_ERROR)
 		gLastError = status;
