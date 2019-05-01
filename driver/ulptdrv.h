@@ -1,5 +1,12 @@
 /* SPDX-License-Identifier: UNLICENSED */
 
+/* This file defines the user-kernel interface.
+ * It implements an ABI baked into the closed source
+ * SBIG Universal Driver SDK, which is currently the only
+ * viable method to access SBIG cameras, even for open
+ * source software.  Do not change this ABI.
+ */
+
 #ifndef _ULPTDRV_
 #define _ULPTDRV_
 
@@ -113,5 +120,43 @@ struct linux_get_area_params {
 	unsigned short *dest;
 	unsigned long length;
 };
+
+/* values must match PAR_ERROR in sbigudrv.h */
+enum par_error {
+	CE_NO_ERROR = 0,
+	CE_BAD_PARAMETER = 6,
+	CE_TX_TIMEOUT = 7,
+	CE_RX_TIMEOUT = 8,
+	CE_NAK_RECEIVED = 9,
+	CE_CAN_RECEIVED = 10,
+	CE_UNKNOWN_RESPONSE = 11,
+	CE_BAD_LENGTH = 12,
+	CE_AD_TIMEOUT = 13,
+	// values not explicitly used in sbiglpt omitted
+};
+
+/* values must match CCD_REQUEST in sbigudrv.h */
+enum ccd_request {
+	CCD_IMAGING = 0,
+	CCD_TRACKING = 1,
+	CCD_EXT_TRACKING = 2,
+};
+
+/* values must match CAMERA_TYPE in sbigudrv.h */
+enum camera_type {
+	ST5C_CAMERA = 6,
+	ST237_CAMERA = 8,
+	ST10_CAMERA = 12,
+	ST1K_CAMERA = 13,
+	// values not explicitly used here omitted
+};
+
+/* layout must match must match GetDriverInfoResults0 in sbigudrv.h */
+struct driver_info_results {
+	unsigned short version;
+	char name[64];
+	unsigned short maxRequest;
+};
+
 
 #endif
