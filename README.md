@@ -1,62 +1,29 @@
 ### sbig-parport
 
-This is a port of the SBIG parallel port camera driver for Linux from
-an older 2.4 kernel to a modern 4.9 kernel.
+This is a Linux device driver for the older SBIG parallel port
+astronomy cameras such as ST-237, ST-7, ST-8, ST-9.
 
-It is slightly different than the old one, in that it uses the "parport"
-stack and thus doesn't directly access legacy x86 ports.  That allows it
-to work with non-x86 parport hardware, such as
+This version includes changes to support modern kernels, and non-PC
+parallel port devices such as
 [pi-parport](https://github.com/garlick/pi-parport).
 
-### SBIG Universal Driver
+The driver maintains the ABI expected by the SBIG Universal Driver SDK.
+Versions up to 4.84 have been tested.  Parallel port cameras appear to
+the SDK and applications as `LPT1`, `LPT2`, etc..
 
-This driver provides a low-level interface, primarily `ioctl()` based, to the
-SBIG Universal Driver, which provides the documented API for applications.
-Fortunately, support for this interface has not been removed in modern
-versions of the universal driver, at least up to version 4.84
-(`LinuxDevKit-2014-10-27T12-58`).
+### Support
 
-### building
+Issues and pull requests are welcome.
+See also: [project wiki](https://github.com/garlick/sbig-parport/wiki)
 
-You'll need kernel headers or a kernel source tree.  To build against
-headers packaged for your running kernel, run
-```
-$ cd driver
-$ make
-```
-To build against another kernel, set `KERNEL_PATH` or `KERNEL_VERSION`
-on the make command line.
+Note: this driver is no longer supported by SBIG/DL.
 
-### installing
+### Origin and License
 
-```
-$ cd ../udev
-$ sudo cp 51-sbig-parport.rules /etc/udev/rules.d/
-$ sudo udevadm control --reload-rules
-$ sudo udevadm trigger
-```
+This driver was made available for download on the SBIG web site for many
+years, but no explicit license was granted by the copyright holders.
 
-### running
+The bulk of the code appears to have originally been ported from the Windows
+environment.
 
-```
-$ modprobe parport parport_pc
-$ insmod sbiglpt.ko
-```
-
-### testing
-
-I have some old cameras I have tested with.  These include:
-* ST-5C
-* ST-7E
-* ST-9E
-
-I primarily test with [sbig-util](https://github.com/garlick/sbig-util).
-
-Testing is pretty ad-hoc at this point.
-
-### license
-
-This kernel module is proprietary, although its source code was publicly
-distributed by SBIG on its web site for many years.  It cannot be
-re-distributed with the Linux kernel as this would violate the terms of
-the kernel's GPL license.
+SPDX-License-Identifier: UNLICENSED
