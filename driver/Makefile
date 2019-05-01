@@ -6,8 +6,8 @@ KERNEL_PATH ?= /lib/modules/$(KERNEL_VERSION)/build
 obj-m += sbiglpt.o
 
 sbiglpt-y = \
-	ksbiglptmain.o \
-	ksbiglpt.o
+	module.o \
+	sbiglpt.o
 
 all: modules
 
@@ -16,4 +16,4 @@ modules clean:
 
 check:
 	scripts/checkpatch.pl --no-tree -f --ignore=LINUX_VERSION_CODE \
-		ksbiglpt.c ksbiglptmain.c ksbiglptmain.h ulptdrv.h
+		sbiglpt.c module.c sbiglpt.h sbiglpt_module.h

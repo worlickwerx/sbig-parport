@@ -7,8 +7,8 @@
  * source software.  Do not change this ABI.
  */
 
-#ifndef _ULPTDRV_
-#define _ULPTDRV_
+#ifndef _SBIGLPT_H
+#define _SBIGLPT_H
 
 #define IOCTL_BASE 0xbb
 
@@ -159,4 +159,4 @@ struct driver_info_results {
 };
 
 
-#endif
+#endif /* !_SBIGLPT_H */

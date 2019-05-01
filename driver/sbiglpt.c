@@ -15,8 +15,8 @@
 #include <linux/device.h>
 #include <linux/parport.h>
 
-#include "ulptdrv.h"
-#include "ksbiglptmain.h"
+#include "sbiglpt.h"
+#include "sbiglpt_module.h"
 
 #define HSI			0x10	// hand shake input bit
 #define CIP			0x10	// conversion in progress bit

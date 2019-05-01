@@ -21,7 +21,7 @@
 #include <linux/cdev.h>
 #include <linux/parport.h>
 
-#include "ksbiglptmain.h"
+#include "sbiglpt_module.h"
 
 #define SBIG_NO 3
 static struct {
