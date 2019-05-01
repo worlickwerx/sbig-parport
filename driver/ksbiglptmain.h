@@ -18,6 +18,7 @@ struct sbig_client {
 	unsigned char noBytesWr;
 	unsigned short buffer_size;
 	char *buffer;
+	struct device *dev;
 	struct parport *port;
 };
 
@@ -31,14 +32,26 @@ static inline u8 sbig_inb(struct sbig_client *pd)
 	return pd->port->ops->read_status(pd->port);
 }
 
-#define sbig_dbg(pd, fmt, arg...) \
-	dev_dbg((pd)->port->dev, fmt, ##arg)
+#define sbig_dbg(pd, fmt, arg...) do { \
+	if ((pd) && (pd)->dev) \
+		dev_dbg((pd)->dev, fmt, ##arg); \
+	else \
+		pr_debug("sbiglpt: " fmt, ##arg); \
+} while (0)
 
-#define sbig_info(pd, fmt, arg...) \
-	dev_info((pd)->port->dev, fmt, ##arg)
+#define sbig_info(pd, fmt, arg...) do { \
+	if ((pd) && (pd)->dev) \
+		dev_info((pd)->dev, fmt, ##arg); \
+	else \
+		pr_info("sbiglpt: " fmt, ##arg); \
+} while (0)
 
-#define sbig_err(pd, fmt, arg...) \
-	dev_err((pd)->port->dev, fmt, ##arg)
+#define sbig_err(pd, fmt, arg...) do { \
+	if ((pd) && (pd)->dev) \
+		dev_err((pd)->dev, fmt, ##arg); \
+	else \
+		pr_err("sbiglpt: " fmt, ##arg); \
+} while (0)
 
 long sbig_ioctl(struct sbig_client *pd, unsigned int cmd, unsigned long arg,
 		spinlock_t *spin_lock);

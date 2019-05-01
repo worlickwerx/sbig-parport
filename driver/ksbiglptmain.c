@@ -20,7 +20,8 @@
 
 #define SBIG_NO 3
 static struct {
-	struct pardevice *dev;
+	struct pardevice *pardev;
+	struct device *dev;
 	spinlock_t spinlock;
 } sbig_table[SBIG_NO];
 static unsigned int sbig_count;
@@ -29,6 +30,23 @@ static dev_t sbig_dev;
 static struct class *sbig_class;
 static struct cdev sbig_cdev;
 
+#ifdef HAVE_DEVICE_CLASS
+#define sbig_device_create(class, parent, devt, drvdata, fmt, arg...) \
+	device_create((class), (parent), (devt), (drvdata), fmt, ##arg)
+#define sbig_device_destroy(class, devt) \
+	device_destroy((class), (devt))
+#define sbig_class_create(module, name) class_create((module), (name))
+#define sbig_class_destroy(class) class_destroy((class))
+#define sbig_class_iserr(class) IS_ERR((class))
+#define sbig_device_iserr(device) IS_ERR((device))
+#else
+#define sbig_device_create(class, parent, devt, drvdata, fmt, arg...) (NULL)
+#define sbig_device_iserr(device) (0)
+#define sbig_device_destroy(class, devt)
+#define sbig_class_create(module, name) (NULL)
+#define sbig_class_iserr(class) (0)
+#define sbig_class_destroy(class)
+#endif
 
 static int sbig_open(struct inode *inode, struct file *file)
 {
@@ -57,7 +75,8 @@ static int sbig_open(struct inode *inode, struct file *file)
 		goto out_unlock;
 	}
 	pd->buffer_size = LDEFAULT_BUFFER_SIZE;
-	pd->port = sbig_table[minor].dev->port;
+	pd->port = sbig_table[minor].pardev->port;
+	pd->dev = sbig_table[minor].dev;
 	file->private_data = pd;
 out_unlock:
 	spin_unlock(&sbig_table[minor].spinlock);
@@ -91,36 +110,50 @@ static void sbig_attach(struct parport *port)
 	int nr = 0 + sbig_count;
 
 	if (!(port->modes & PARPORT_MODE_PCSPP)) {
-		dev_info(port->dev, "ignoring %s - no SPP capability\n",
-			 port->name);
+		pr_info("%s: ignoring %s - no SPP capability\n",
+			__func__, port->name);
 		return;
 	}
 	if (nr == SBIG_NO) {
-		dev_info(port->dev, "ignoring %s - max %d reached\n",
-			 port->name, SBIG_NO);
+		pr_info("%s: ignoring %s - max %d reached\n",
+			__func__, port->name, SBIG_NO);
 		return;
 	}
-	sbig_table[nr].dev = parport_register_device(port, "sbiglpt", NULL,
-						     NULL, NULL, 0, NULL);
-	if (sbig_table[nr].dev == NULL) {
-		dev_err(port->dev, "parport_register_device failed\n");
+	sbig_table[nr].pardev = parport_register_device(port, "sbiglpt", NULL,
+							NULL, NULL, 0, NULL);
+	if (sbig_table[nr].pardev == NULL) {
+		pr_err("%s: parport_register_device failed\n", __func__);
 		return;
 	}
-	if (parport_claim(sbig_table[nr].dev)) {
-		parport_unregister_device(sbig_table[nr].dev);
-		dev_err(port->dev, "parport_claim failed\n");
-		return;
+	if (parport_claim(sbig_table[nr].pardev)) {
+		pr_err("%s: parport_claim failed\n", __func__);
+		goto out;
 	}
-	device_create(sbig_class, port->dev, MKDEV(MAJOR(sbig_dev), nr), NULL,
-		      "sbiglpt%d", nr);
+	sbig_table[nr].dev = sbig_device_create(sbig_class, port->dev,
+						MKDEV(MAJOR(sbig_dev), nr),
+						NULL, "sbiglpt%d", nr);
+	if (sbig_device_iserr(sbig_table[nr].dev)) {
+		pr_err("%s: device_create failed\n", __func__);
+		goto out_release;
+	}
 	spin_lock_init(&sbig_table[nr].spinlock);
 	sbig_count++;
-	dev_info(port->dev, "%s claimed by sbiglpt%d\n", port->name, nr);
+	if (sbig_table[nr].dev) {
+		dev_info(sbig_table[nr].dev, "attached to %s\n", port->name);
+	} else {
+		pr_info("sbiglpt%d: attached to %s\n", nr, port->name);
+		pr_info("sbiglpt%d: hint: mknod /dev/sbiglpt%d c %d %d\n",
+			nr, nr, MAJOR(sbig_dev), nr);
+	}
+	return;
+out_release:
+	parport_release(sbig_table[nr].pardev);
+out:
+	parport_unregister_device(sbig_table[nr].pardev);
 }
 
 static void sbig_detach(struct parport *port)
 {
-	//dev_info(port->dev, "detach %s\n", port->name);
 }
 
 static struct parport_driver sbig_driver = {
@@ -139,28 +172,28 @@ static const struct file_operations sbig_fops = {
 static int sbig_init_module(void)
 {
 	if (alloc_chrdev_region(&sbig_dev, 0, SBIG_NO, "sbiglpt") < 0) {
-		pr_err("sbiglpt: alloc_chrdev_region failed\n");
+		pr_err("%s: alloc_chrdev_region failed\n", __func__);
 		goto out;
 	}
-	sbig_class = class_create(THIS_MODULE, "chardrv");
-	if (!sbig_class) {
-		pr_err("sbiglpt: class_create failed\n");
+	sbig_class = sbig_class_create(THIS_MODULE, "sbiglpt");
+	if (sbig_class_iserr(sbig_class)) {
+		pr_err("%s: class_create failed\n", __func__);
 		goto out_reg;
 	}
 	cdev_init(&sbig_cdev, &sbig_fops);
 	if (cdev_add(&sbig_cdev, sbig_dev, SBIG_NO) < 0) {
-		pr_err("sbiglpt: cdev_add failed\n");
+		pr_err("%s: cdev_add failed\n", __func__);
 		goto out_class;
 	}
 	if (parport_register_driver(&sbig_driver)) {
-		pr_err("sbiglpt: parport_register_driver failed\n");
+		pr_err("%s: parport_register_driver failed\n", __func__);
 		goto out_cdev;
 	}
 	return (0);
 out_cdev:
 	cdev_del(&sbig_cdev);
 out_class:
-	class_destroy(sbig_class);
+	sbig_class_destroy(sbig_class);
 out_reg:
 	unregister_chrdev_region(sbig_dev, SBIG_NO);
 out:
@@ -174,11 +207,11 @@ static void sbig_cleanup_module(void)
 	parport_unregister_driver(&sbig_driver);
 	cdev_del(&sbig_cdev);
 	for (nr = 0; nr < sbig_count; nr++) {
-		parport_release(sbig_table[nr].dev);
-		parport_unregister_device(sbig_table[nr].dev);
-		device_destroy(sbig_class, MKDEV(MAJOR(sbig_dev), nr));
+		parport_release(sbig_table[nr].pardev);
+		parport_unregister_device(sbig_table[nr].pardev);
+		sbig_device_destroy(sbig_class, MKDEV(MAJOR(sbig_dev), nr));
 	}
-	class_destroy(sbig_class);
+	sbig_class_destroy(sbig_class);
 	unregister_chrdev_region(sbig_dev, SBIG_NO);
 }
 //========================================================================
@@ -186,7 +219,7 @@ static void sbig_cleanup_module(void)
 module_init(sbig_init_module);
 module_exit(sbig_cleanup_module);
 
-// N.B. no license was declared with orig. SBIG source code.
-// This *file* is declared GPL by its author (Jim Garlick).
-// TODO: see if we can get a statement from copyright holders of the other bits.
-MODULE_LICENSE("GPL");
+#ifndef SBIGLPT_LICENSE
+#define SBIGLPT_LICENSE "UNLICENSED"
+#endif
+MODULE_LICENSE(SBIGLPT_LICENSE);
