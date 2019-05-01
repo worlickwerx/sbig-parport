@@ -142,7 +142,7 @@ static int sbig_init_module(void)
 		pr_err("sbiglpt: alloc_chrdev_region failed\n");
 		goto out;
 	}
-	sbig_class = class_create(THIS_MODULE, "chardrv");
+	sbig_class = class_create(THIS_MODULE, "sbiglpt");
 	if (!sbig_class) {
 		pr_err("sbiglpt: class_create failed\n");
 		goto out_reg;
