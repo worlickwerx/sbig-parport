@@ -1449,87 +1449,87 @@ long sbig_ioctl(struct sbig_client *pd, unsigned int cmd, unsigned long arg,
 	}
 
 	switch (cmd) {
-	case LIOCTL_INIT_PORT:
+	case IOCTL_INIT_PORT:
 		KLptForceMicroIdle(pd);
 		break;
 
-	case LIOCTL_CAMERA_OUT:
+	case IOCTL_CAMERA_OUT:
 		KLptCameraOutWrapper(pd, arg);
 		break;
 
-	case LIOCTL_SEND_MICRO_BLOCK:
+	case IOCTL_SEND_MICRO_BLOCK:
 		status = KLptSendMicroBlock(pd, arg);
 		break;
 
-	case LIOCTL_GET_MICRO_BLOCK:
+	case IOCTL_GET_MICRO_BLOCK:
 		status = KLptGetMicroBlock(pd, arg);
 		break;
 
-	case LIOCTL_SET_VDD:
+	case IOCTL_SET_VDD:
 		KLptSetVdd(pd, arg);
 		break;
 
-	case LIOCTL_CLEAR_IMAG_CCD:
+	case IOCTL_CLEAR_IMAG_CCD:
 		status = KLptClearImagingArray(pd, arg);
 		break;
 
-	case LIOCTL_CLEAR_TRAC_CCD:
+	case IOCTL_CLEAR_TRAC_CCD:
 		status = KLptClearTrackingArray(pd, arg);
 		break;
 
-	case LIOCTL_GET_PIXELS:
+	case IOCTL_GET_PIXELS:
 		status = KLptGetPixels(pd, arg);
 		break;
 
-	case LIOCTL_GET_AREA:
+	case IOCTL_GET_AREA:
 		status = KLptGetArea(pd, arg);
 		break;
 
-	case LIOCTL_GET_JIFFIES:
+	case IOCTL_GET_JIFFIES:
 		status = KLptGetJiffies(arg);
 		break;
 
-	case LIOCTL_GET_HZ:
+	case IOCTL_GET_HZ:
 		status = KLptGetHz(arg);
 		break;
 
-	case LIOCTL_GET_LAST_ERROR:
+	case IOCTL_GET_LAST_ERROR:
 		status = KSbigLptGetLastError(arg);
 		break;
 
-	case LIOCTL_DUMP_ILINES:
+	case IOCTL_DUMP_ILINES:
 		status = KLptDumpImagingLines(pd, arg);
 		break;
 
-	case LIOCTL_DUMP_TLINES:
+	case IOCTL_DUMP_TLINES:
 		status = KLptDumpTrackingLines(pd, arg);
 		break;
 
-	case LIOCTL_DUMP_5LINES:
+	case IOCTL_DUMP_5LINES:
 		status = KLptDumpST5CLines(pd, arg);
 		break;
 
-	case LIOCTL_CLOCK_AD:
+	case IOCTL_CLOCK_AD:
 		status = KLptClockAD(pd, arg);
 		break;
 
-	case LIOCTL_GET_DRIVER_INFO:
+	case IOCTL_GET_DRIVER_INFO:
 		status = KLptGetDriverInfo(pd, arg);
 		break;
 
-	case LIOCTL_REALLOCATE_PORTS:
-		sbig_err(pd, "LIOCTL_REALLOCATE_PORTS ioctl deprecated\n");
+	case IOCTL_REALLOCATE_PORTS:
+		sbig_err(pd, "IOCTL_REALLOCATE_PORTS ioctl deprecated\n");
 		break;
 
-	case LIOCTL_SET_BUFFER_SIZE:
+	case IOCTL_SET_BUFFER_SIZE:
 		status = KLptSetBufferSize(pd, spin_lock, arg);
 		break;
 
-	case LIOCTL_GET_BUFFER_SIZE:
+	case IOCTL_GET_BUFFER_SIZE:
 		status = KLptGetBufferSize(pd);
 		break;
 
-	case LIOCTL_TEST_COMMAND:
+	case IOCTL_TEST_COMMAND:
 		status = KLptTestCommand(pd);
 		break;
 
