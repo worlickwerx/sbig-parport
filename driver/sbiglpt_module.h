@@ -1,7 +1,7 @@
 /* SPDX-License-Identifier: GPL-2.0-or-later */
 
-#ifndef _KSBIGLPTMAIN_H_
-#define _KSBIGLPTMAIN_H_
+#ifndef _SBIGLPT_MODULE_H
+#define _SBIGLPT_MODULE_H
 
 #include <linux/parport.h>
 
@@ -56,4 +56,4 @@ static inline u8 sbig_inb(struct sbig_client *pd)
 long sbig_ioctl(struct sbig_client *pd, unsigned int cmd, unsigned long arg,
 		spinlock_t *spin_lock);
 
-#endif
+#endif /* !_SBIGLPT_MODULE_H */

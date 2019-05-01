@@ -15,8 +15,8 @@
 #include <linux/device.h>
 #include <linux/parport.h>
 
-#include "ulptdrv.h"
-#include "ksbiglptmain.h"
+#include "sbiglpt.h"
+#include "sbiglpt_module.h"
 
 #define HSI			0x10	// hand shake input bit
 #define CIP			0x10	// conversion in progress bit
@@ -38,43 +38,6 @@
 					//  do a full horizontal clock on
 
 #define IDLE_STATE_DELAY	(55*3)	// time to force idle at start of packet
-
-/* values must match PAR_ERROR in sbigudrv.h */
-enum par_error {
-	CE_NO_ERROR = 0,
-	CE_BAD_PARAMETER = 6,
-	CE_TX_TIMEOUT = 7,
-	CE_RX_TIMEOUT = 8,
-	CE_NAK_RECEIVED = 9,
-	CE_CAN_RECEIVED = 10,
-	CE_UNKNOWN_RESPONSE = 11,
-	CE_BAD_LENGTH = 12,
-	CE_AD_TIMEOUT = 13,
-	// values not explicitly used here omitted
-};
-
-/* values must match CCD_REQUEST in sbigudrv.h */
-enum ccd_request {
-	CCD_IMAGING = 0,
-	CCD_TRACKING = 1,
-	CCD_EXT_TRACKING = 2,
-};
-
-/* values must match CAMERA_TYPE in sbigudrv.h */
-enum camera_type {
-	ST5C_CAMERA = 6,
-	ST237_CAMERA = 8,
-	ST10_CAMERA = 12,
-	ST1K_CAMERA = 13,
-	// values not explicitly used here omitted
-};
-
-/* [ABI] layout must match must match GetDriverInfoResults0 in sbigudrv.h */
-struct driver_info_results {
-	unsigned short version;
-	char name[64];
-	unsigned short maxRequest;
-};
 
 enum output_register {
 	TRACKING_CLOCKS = 0x00,
@@ -1486,87 +1449,87 @@ long sbig_ioctl(struct sbig_client *pd, unsigned int cmd, unsigned long arg,
 	}
 
 	switch (cmd) {
-	case LIOCTL_INIT_PORT:
+	case IOCTL_INIT_PORT:
 		KLptForceMicroIdle(pd);
 		break;
 
-	case LIOCTL_CAMERA_OUT:
+	case IOCTL_CAMERA_OUT:
 		KLptCameraOutWrapper(pd, arg);
 		break;
 
-	case LIOCTL_SEND_MICRO_BLOCK:
+	case IOCTL_SEND_MICRO_BLOCK:
 		status = KLptSendMicroBlock(pd, arg);
 		break;
 
-	case LIOCTL_GET_MICRO_BLOCK:
+	case IOCTL_GET_MICRO_BLOCK:
 		status = KLptGetMicroBlock(pd, arg);
 		break;
 
-	case LIOCTL_SET_VDD:
+	case IOCTL_SET_VDD:
 		KLptSetVdd(pd, arg);
 		break;
 
-	case LIOCTL_CLEAR_IMAG_CCD:
+	case IOCTL_CLEAR_IMAG_CCD:
 		status = KLptClearImagingArray(pd, arg);
 		break;
 
-	case LIOCTL_CLEAR_TRAC_CCD:
+	case IOCTL_CLEAR_TRAC_CCD:
 		status = KLptClearTrackingArray(pd, arg);
 		break;
 
-	case LIOCTL_GET_PIXELS:
+	case IOCTL_GET_PIXELS:
 		status = KLptGetPixels(pd, arg);
 		break;
 
-	case LIOCTL_GET_AREA:
+	case IOCTL_GET_AREA:
 		status = KLptGetArea(pd, arg);
 		break;
 
-	case LIOCTL_GET_JIFFIES:
+	case IOCTL_GET_JIFFIES:
 		status = KLptGetJiffies(arg);
 		break;
 
-	case LIOCTL_GET_HZ:
+	case IOCTL_GET_HZ:
 		status = KLptGetHz(arg);
 		break;
 
-	case LIOCTL_GET_LAST_ERROR:
+	case IOCTL_GET_LAST_ERROR:
 		status = KSbigLptGetLastError(arg);
 		break;
 
-	case LIOCTL_DUMP_ILINES:
+	case IOCTL_DUMP_ILINES:
 		status = KLptDumpImagingLines(pd, arg);
 		break;
 
-	case LIOCTL_DUMP_TLINES:
+	case IOCTL_DUMP_TLINES:
 		status = KLptDumpTrackingLines(pd, arg);
 		break;
 
-	case LIOCTL_DUMP_5LINES:
+	case IOCTL_DUMP_5LINES:
 		status = KLptDumpST5CLines(pd, arg);
 		break;
 
-	case LIOCTL_CLOCK_AD:
+	case IOCTL_CLOCK_AD:
 		status = KLptClockAD(pd, arg);
 		break;
 
-	case LIOCTL_GET_DRIVER_INFO:
+	case IOCTL_GET_DRIVER_INFO:
 		status = KLptGetDriverInfo(pd, arg);
 		break;
 
-	case LIOCTL_REALLOCATE_PORTS:
-		sbig_err(pd, "LIOCTL_REALLOCATE_PORTS ioctl deprecated\n");
+	case IOCTL_REALLOCATE_PORTS:
+		sbig_err(pd, "IOCTL_REALLOCATE_PORTS ioctl deprecated\n");
 		break;
 
-	case LIOCTL_SET_BUFFER_SIZE:
+	case IOCTL_SET_BUFFER_SIZE:
 		status = KLptSetBufferSize(pd, spin_lock, arg);
 		break;
 
-	case LIOCTL_GET_BUFFER_SIZE:
+	case IOCTL_GET_BUFFER_SIZE:
 		status = KLptGetBufferSize(pd);
 		break;
 
-	case LIOCTL_TEST_COMMAND:
+	case IOCTL_TEST_COMMAND:
 		status = KLptTestCommand(pd);
 		break;
 

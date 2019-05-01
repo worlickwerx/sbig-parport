@@ -1,11 +1,16 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 
-/* SBIG astronomy camera parallel port driver
- *
- * Replacement driver mainline developed on Linux 4.10, supercedes mainline
- * written for Linux 2.4 by Jan Soldan (c) 2002-2003.
+/* SBIG astronomy camera parallel port driver main
  *
  * Copyright (c) 2017 by Jim Garlick
+ *
+ * Don't make assumptions about legacy PC parallel port
+ * memory-mapped addresses.  Instead, claim a "parport"
+ * device and use its I/O methods, thus allowing the
+ * driver to work on non-PC hardware.
+ *
+ * N.B. This is a complete rewrite of the original sbiglpt
+ * driver main by Jan Soldan (c) 2002-2003.
  */
 
 #include <linux/module.h>
@@ -16,7 +21,7 @@
 #include <linux/cdev.h>
 #include <linux/parport.h>
 
-#include "ksbiglptmain.h"
+#include "sbiglpt_module.h"
 
 #define SBIG_NO 3
 static struct {
@@ -214,7 +219,6 @@ static void sbig_cleanup_module(void)
 	sbig_class_destroy(sbig_class);
 	unregister_chrdev_region(sbig_dev, SBIG_NO);
 }
-//========================================================================
 
 module_init(sbig_init_module);
 module_exit(sbig_cleanup_module);
