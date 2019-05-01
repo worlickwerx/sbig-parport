@@ -1,6 +1,8 @@
 KERNEL_VERSION ?= $(shell uname -r)
 KERNEL_PATH ?= /lib/modules/$(KERNEL_VERSION)/build
 
+#EXTRA_CFLAGS = -DHAVE_DEVICE_CLASS -DSBIGLPT_LICENSE=\"GPL\"
+
 obj-m += sbiglpt.o
 
 sbiglpt-y = \

@@ -30,6 +30,23 @@ static dev_t sbig_dev;
 static struct class *sbig_class;
 static struct cdev sbig_cdev;
 
+#ifdef HAVE_DEVICE_CLASS
+#define sbig_device_create(class, parent, devt, drvdata, fmt, arg...) \
+	device_create((class), (parent), (devt), (drvdata), fmt, ##arg)
+#define sbig_device_destroy(class, devt) \
+	device_destroy((class), (devt))
+#define sbig_class_create(module, name) class_create((module), (name))
+#define sbig_class_destroy(class) class_destroy((class))
+#define sbig_class_iserr(class) IS_ERR((class))
+#define sbig_device_iserr(device) IS_ERR((device))
+#else
+#define sbig_device_create(class, parent, devt, drvdata, fmt, arg...) (NULL)
+#define sbig_device_iserr(device) (0)
+#define sbig_device_destroy(class, devt)
+#define sbig_class_create(module, name) (NULL)
+#define sbig_class_iserr(class) (0)
+#define sbig_class_destroy(class)
+#endif
 
 static int sbig_open(struct inode *inode, struct file *file)
 {
@@ -112,16 +129,22 @@ static void sbig_attach(struct parport *port)
 		pr_err("%s: parport_claim failed\n", __func__);
 		goto out;
 	}
-	sbig_table[nr].dev = device_create(sbig_class, port->dev,
-					   MKDEV(MAJOR(sbig_dev), nr), NULL,
-					   "sbiglpt%d", nr);
-	if (IS_ERR(sbig_table[nr].dev)) {
+	sbig_table[nr].dev = sbig_device_create(sbig_class, port->dev,
+						MKDEV(MAJOR(sbig_dev), nr),
+						NULL, "sbiglpt%d", nr);
+	if (sbig_device_iserr(sbig_table[nr].dev)) {
 		pr_err("%s: device_create failed\n", __func__);
 		goto out_release;
 	}
 	spin_lock_init(&sbig_table[nr].spinlock);
 	sbig_count++;
-	dev_info(sbig_table[nr].dev, "attached to %s\n", port->name);
+	if (sbig_table[nr].dev) {
+		dev_info(sbig_table[nr].dev, "attached to %s\n", port->name);
+	} else {
+		pr_info("sbiglpt%d: attached to %s\n", nr, port->name);
+		pr_info("sbiglpt%d: hint: mknod /dev/sbiglpt%d c %d %d\n",
+			nr, nr, MAJOR(sbig_dev), nr);
+	}
 	return;
 out_release:
 	parport_release(sbig_table[nr].pardev);
@@ -152,8 +175,8 @@ static int sbig_init_module(void)
 		pr_err("%s: alloc_chrdev_region failed\n", __func__);
 		goto out;
 	}
-	sbig_class = class_create(THIS_MODULE, "sbiglpt");
-	if (!sbig_class) {
+	sbig_class = sbig_class_create(THIS_MODULE, "sbiglpt");
+	if (sbig_class_iserr(sbig_class)) {
 		pr_err("%s: class_create failed\n", __func__);
 		goto out_reg;
 	}
@@ -170,7 +193,7 @@ static int sbig_init_module(void)
 out_cdev:
 	cdev_del(&sbig_cdev);
 out_class:
-	class_destroy(sbig_class);
+	sbig_class_destroy(sbig_class);
 out_reg:
 	unregister_chrdev_region(sbig_dev, SBIG_NO);
 out:
@@ -186,9 +209,9 @@ static void sbig_cleanup_module(void)
 	for (nr = 0; nr < sbig_count; nr++) {
 		parport_release(sbig_table[nr].pardev);
 		parport_unregister_device(sbig_table[nr].pardev);
-		device_destroy(sbig_class, MKDEV(MAJOR(sbig_dev), nr));
+		sbig_device_destroy(sbig_class, MKDEV(MAJOR(sbig_dev), nr));
 	}
-	class_destroy(sbig_class);
+	sbig_class_destroy(sbig_class);
 	unregister_chrdev_region(sbig_dev, SBIG_NO);
 }
 //========================================================================
@@ -196,7 +219,7 @@ static void sbig_cleanup_module(void)
 module_init(sbig_init_module);
 module_exit(sbig_cleanup_module);
 
-// N.B. no license was declared with orig. SBIG source code.
-// This *file* is declared GPL by its author (Jim Garlick).
-// TODO: see if we can get a statement from copyright holders of the other bits.
-MODULE_LICENSE("GPL");
+#ifndef SBIGLPT_LICENSE
+#define SBIGLPT_LICENSE "UNLICENSED"
+#endif
+MODULE_LICENSE(SBIGLPT_LICENSE);
