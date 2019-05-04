@@ -120,9 +120,6 @@ enum readout_control_bits {
 	u += (unsigned short)(sbig_inb(pd) & 0x78) >> 3; \
 } while (0)
 
-// Global variables:
-unsigned short gLastError;
-
 //========================================================================
 // KLptCameraOut
 // Write data to one of the Camera Registers.
@@ -166,7 +163,6 @@ int KLptCameraOutWrapper(struct sbig_client *pd,
 				sizeof(struct linux_camera_out_params));
 	if (status != 0) {
 		sbig_err(pd, "%s: copy_from_user: error\n", __func__);
-		gLastError = CE_BAD_PARAMETER;
 		return -EFAULT;
 	}
 
@@ -253,14 +249,12 @@ int KLptSendMicroBlock(struct sbig_client *pd, unsigned long arg)
 				sizeof(struct linux_micro_block));
 	if (status != 0) {
 		sbig_err(pd, "%s: copy_from_user: lmb error\n", __func__);
-		gLastError = CE_BAD_PARAMETER;
 		return -EFAULT;
 	}
 
 	status = copy_from_user(p, lmb.pBuffer, lmb.length);
 	if (status != 0) {
 		sbig_err(pd, "%s: copy_from_user: lmb.pData error\n", __func__);
-		gLastError = CE_BAD_PARAMETER;
 		return -EFAULT;
 	}
 
@@ -288,7 +282,7 @@ int KLptSendMicroBlock(struct sbig_client *pd, unsigned long arg)
 			// compute time delay in milliseconds
 			delay = jiffies - t0;
 			if (delay > nibbleTimeout) {
-				status = gLastError = CE_TX_TIMEOUT;
+				status = CE_TX_TIMEOUT;
 				KLptCameraOut(pd, CONTROL_OUT, 0);
 				break;
 			}
@@ -317,7 +311,6 @@ int KLptGetMicroBlock(struct sbig_client *pd, unsigned long arg)
 				sizeof(struct linux_micro_block));
 	if (status != 0) {
 		sbig_err(pd, "%s: copy_from_user: lmb error\n", __func__);
-		gLastError = CE_BAD_PARAMETER;
 		return -EFAULT;
 	}
 
@@ -400,16 +393,14 @@ int KLptGetMicroBlock(struct sbig_client *pd, unsigned long arg)
 
 	pd->noBytesRd = (unsigned long)(rx_len / 2);
 
-	if (status != CE_NO_ERROR)
-		gLastError = status;
-
-	status = copy_to_user(lmb.pBuffer, pd->buffer, lmb.length);
-	if (status != 0) {
-		sbig_err(pd, "%s: copy_to_user: lmb.pData error\n", __func__);
-		gLastError = CE_BAD_PARAMETER;
-		return -EFAULT;
+	if (status == CE_NO_ERROR) {
+		status = copy_to_user(lmb.pBuffer, pd->buffer, lmb.length);
+		if (status != 0) {
+			sbig_err(pd, "%s: copy_to_user: lmb.pData error\n",
+				 __func__);
+			return -EFAULT;
+		}
 	}
-
 	return status;
 }
 //========================================================================
@@ -422,7 +413,6 @@ int KLptSetVdd(struct sbig_client *pd, unsigned long arg)
 	if (copy_from_user(&svdd, (struct ioc_set_vdd __user *)arg,
 			   sizeof(struct ioc_set_vdd)) != 0) {
 		sbig_err(pd, "%s: copy_from_user: error\n", __func__);
-		gLastError = CE_BAD_PARAMETER;
 		return -EFAULT;
 	}
 
@@ -434,7 +424,6 @@ int KLptSetVdd(struct sbig_client *pd, unsigned long arg)
 	if (copy_to_user((struct ioc_set_vdd __user *)arg, &svdd,
 			 sizeof(struct ioc_set_vdd)) != 0) {
 		sbig_err(pd, "%s: copy_to_user: svdd error\n", __func__);
-		gLastError = CE_BAD_PARAMETER;
 		return -EFAULT;
 	}
 
@@ -480,7 +469,7 @@ int KLptWaitForPLD(struct sbig_client *pd)
 		if (!(KLptCameraIn(pd, AD0) & CIP))
 			break;
 		if (t0++ >= CONVERSION_DELAY)
-			return (gLastError = CE_AD_TIMEOUT);
+			return CE_AD_TIMEOUT;
 	}
 	return CE_NO_ERROR;
 }
@@ -497,7 +486,7 @@ int KLptWaitForAD(struct sbig_client *pd)
 		if (!(sbig_inb(pd) & 0x80))
 			break;
 		if (t0++ >= CONVERSION_DELAY)
-			return (gLastError = CE_AD_TIMEOUT);
+			return CE_AD_TIMEOUT;
 	}
 	return CE_NO_ERROR;
 }
@@ -517,7 +506,7 @@ int KLptHClear(struct sbig_client *pd, short times)
 		// wait for PLD
 		status = KLptWaitForPLD(pd);
 		if (status != CE_NO_ERROR)
-			return (gLastError = status);
+			return status;
 	}
 	return CE_NO_ERROR;
 }
@@ -591,7 +580,7 @@ int KLptRVClockTrackingCCD(struct sbig_client *pd,
 int KLptVClockImagingCCD(struct sbig_client *pd, enum camera_type cameraID,
 			 unsigned char baseClks, short hClears)
 {
-	int status = CE_NO_ERROR;
+	int status;
 	unsigned char v1_h, v2_h;
 
 	short vclock_delay =
@@ -611,22 +600,22 @@ int KLptVClockImagingCCD(struct sbig_client *pd, enum camera_type cameraID,
 			      (unsigned char)(baseClks | v1_h)); // V1 high
 		status = KLptHClear(pd, hClears);
 		if (status != CE_NO_ERROR)
-			return (gLastError = status);
+			goto out;
 		KLptCameraOut(pd, IMAGING_CLOCKS,
 			      (unsigned char)(baseClks | v2_h)); // V2 high
 		status = KLptHClear(pd, hClears);
 		if (status != CE_NO_ERROR)
-			return (gLastError = status);
+			goto out;
 		KLptCameraOut(pd, IMAGING_CLOCKS,
 			      (unsigned char)(baseClks | v1_h)); // V1 high
 		status = KLptHClear(pd, hClears);
 		if (status != CE_NO_ERROR)
-			return (gLastError = status);
+			goto out;
 		KLptCameraOut(pd, IMAGING_CLOCKS,
 			      (unsigned char)(baseClks)); // all low
 		status = KLptHClear(pd, hClears);
 		if (status != CE_NO_ERROR)
-			return (gLastError = status);
+			goto out;
 	} else {
 		KLptCameraOut(pd, IMAGING_CLOCKS,
 			      (unsigned char)(baseClks | v1_h)); // V1 high
@@ -641,6 +630,9 @@ int KLptVClockImagingCCD(struct sbig_client *pd, enum camera_type cameraID,
 			      (unsigned char)(baseClks)); // all low
 		KLptIoDelay(pd, vclock_delay);
 	}
+	return CE_NO_ERROR;
+out:
+	pd->last_error = status;
 	return status;
 }
 //========================================================================
@@ -651,7 +643,7 @@ int KLptVClockImagingCCD(struct sbig_client *pd, enum camera_type cameraID,
 int KLptBlockClearPixels(struct sbig_client *pd, enum camera_type cameraID,
 			 enum ccd_request ccd, short len, short readoutMode)
 {
-	int status = CE_NO_ERROR;
+	int status;
 	short j, bulk, individual;
 	unsigned char ccd_select;
 
@@ -676,7 +668,7 @@ int KLptBlockClearPixels(struct sbig_client *pd, enum camera_type cameraID,
 		KLptCameraOut(pd, CONTROL_OUT, ccd_select);
 		status = KLptWaitForPLD(pd);
 		if (status != CE_NO_ERROR)
-			return (gLastError = status);
+			goto out;
 	}
 
 	if (cameraID == ST5C_CAMERA || cameraID == ST237_CAMERA) {
@@ -702,8 +694,11 @@ int KLptBlockClearPixels(struct sbig_client *pd, enum camera_type cameraID,
 		KLptCameraOut(pd, CONTROL_OUT, ccd_select);
 		status = KLptWaitForPLD(pd);
 		if (status != CE_NO_ERROR)
-			return (gLastError = status);
+			goto out;
 	}
+	return CE_NO_ERROR;
+out:
+	pd->last_error = status;
 	return status;
 }
 //========================================================================
@@ -713,7 +708,7 @@ int KLptBlockClearPixels(struct sbig_client *pd, enum camera_type cameraID,
 int KLptRVClockImagingCCD(struct sbig_client *pd,
 			  struct ioc_vclock_ccd_params *pParams)
 {
-	int status = CE_NO_ERROR;
+	int status;
 	enum camera_type cameraID = pParams->cameraID;
 	short onVertBin = pParams->onVertBin;
 	short clearWidth = pParams->clearWidth;
@@ -723,7 +718,7 @@ int KLptRVClockImagingCCD(struct sbig_client *pd,
 	// this needs to be passed incase its the large KAF1600 CCD
 	status = KLptBlockClearPixels(pd, cameraID, CCD_IMAGING, clearWidth, 0);
 	if (status != CE_NO_ERROR)
-		return (gLastError = status);
+		goto out;
 
 	// do vertical shift into readout register
 	KDisable(pd);
@@ -733,6 +728,9 @@ int KLptRVClockImagingCCD(struct sbig_client *pd,
 		KLptVClockImagingCCD(pd, cameraID, IABG_M, 0);
 	KEnable(pd);
 	return CE_NO_ERROR;
+out:
+	pd->last_error = status;
+	return status;
 }
 //========================================================================
 // KLptGetPixels
@@ -757,7 +755,6 @@ int KLptGetPixels(struct sbig_client *pd, unsigned long arg)
 				sizeof(struct linux_get_pixels_params));
 	if (status != 0) {
 		sbig_err(pd, "%s: copy_from_user: error\n", __func__);
-		gLastError = CE_BAD_PARAMETER;
 		return -EFAULT;
 	}
 
@@ -771,7 +768,7 @@ int KLptGetPixels(struct sbig_client *pd, unsigned long arg)
 	st237A = lgpp.gpp.st237A;
 
 	if (lgpp.length < (unsigned long)(2L * len))
-		return (gLastError = CE_BAD_PARAMETER);
+		return CE_BAD_PARAMETER;
 
 	pd->noBytesRd = 0;
 	mask = (cameraID == ST237_CAMERA && !st237A) ? 0x0FFF : 0xFFFF;
@@ -798,7 +795,7 @@ int KLptGetPixels(struct sbig_client *pd, unsigned long arg)
 		status = KLptBlockClearPixels(pd, cameraID, ccd, left, 0);
 		if  (status != CE_NO_ERROR) {
 			KEnable(pd);
-			return (gLastError = status);
+			return status;
 		}
 	}
 
@@ -806,7 +803,7 @@ int KLptGetPixels(struct sbig_client *pd, unsigned long arg)
 				      (short)(horzBin - 1));
 	if (status != CE_NO_ERROR) {
 		KEnable(pd);
-		return (gLastError = status);
+		return status;
 	}
 
 	// Digitize desired pixels
@@ -833,7 +830,7 @@ int KLptGetPixels(struct sbig_client *pd, unsigned long arg)
 				break;
 			if (--u == 0) {
 				KEnable(pd);
-				return (gLastError = CE_AD_TIMEOUT);
+				return CE_AD_TIMEOUT;
 			}
 		}
 
@@ -866,7 +863,6 @@ int KLptGetPixels(struct sbig_client *pd, unsigned long arg)
 	status = copy_to_user(lgpp.dest, pd->buffer, lgpp.length);
 	if (status != 0) {
 		sbig_err(pd, "%s: copy_to_user: lgpp.dest error\n", __func__);
-		gLastError = CE_BAD_PARAMETER;
 		return -EFAULT;
 	}
 
@@ -878,7 +874,7 @@ int KLptGetPixels(struct sbig_client *pd, unsigned long arg)
 //========================================================================
 int KLptGetArea(struct sbig_client *pd, unsigned long arg)
 {
-	int status = CE_NO_ERROR;
+	int status;
 	struct linux_get_area_params lgap;
 	struct ioc_vclock_ccd_params ivcp;
 	enum camera_type cameraID;
@@ -895,7 +891,6 @@ int KLptGetArea(struct sbig_client *pd, unsigned long arg)
 				sizeof(struct linux_get_area_params));
 	if (status != 0) {
 		sbig_err(pd, "%s: copy_from_user: error\n", __func__);
-		gLastError = CE_BAD_PARAMETER;
 		return -EFAULT;
 	}
 
@@ -915,10 +910,10 @@ int KLptGetArea(struct sbig_client *pd, unsigned long arg)
 
 	// check input parameters
 	if (lgap.length != (unsigned long)height * len * 2)
-		return (gLastError = CE_BAD_PARAMETER);
+		return CE_BAD_PARAMETER;
 	// check if internal data buffer is long enough
 	if (pd->buffer_size < (unsigned long)height * len * 2)
-		return (gLastError = CE_BAD_PARAMETER);
+		return CE_BAD_PARAMETER;
 	for (i = 0; i < height; i++) {
 		// set actual buffer position
 		p = kbuf + i * 2 * len;
@@ -942,7 +937,7 @@ int KLptGetArea(struct sbig_client *pd, unsigned long arg)
 						      ccd, left, 0);
 			if (status != CE_NO_ERROR) {
 				KEnable(pd);
-				return (gLastError = status);
+				return status;
 			}
 		}
 
@@ -950,7 +945,7 @@ int KLptGetArea(struct sbig_client *pd, unsigned long arg)
 					      (short)(horzBin - 1));
 		if (status != CE_NO_ERROR) {
 			KEnable(pd);
-			return (gLastError = status);
+			return status;
 		}
 
 		// Digitize desired pixels
@@ -978,7 +973,7 @@ int KLptGetArea(struct sbig_client *pd, unsigned long arg)
 					break;
 				if (--u == 0) {
 					KEnable(pd);
-					return (gLastError = CE_AD_TIMEOUT);
+					return CE_AD_TIMEOUT;
 				}
 			}
 			// trigger A/D for next cycle
@@ -995,7 +990,7 @@ int KLptGetArea(struct sbig_client *pd, unsigned long arg)
 		// wait for last A/D
 		status = KLptWaitForAD(pd);
 		if (status != CE_NO_ERROR)
-			return (gLastError = status);
+			return status;
 
 		// discard unused right pixels
 		if (right != 0) {
@@ -1014,11 +1009,10 @@ int KLptGetArea(struct sbig_client *pd, unsigned long arg)
 	status = copy_to_user(lgap.dest, pd->buffer, lgap.length);
 	if (status != 0) {
 		sbig_err(pd, "%s: copy_to_user: lgap.dest error\n", __func__);
-		gLastError = CE_BAD_PARAMETER;
 		return -EFAULT;
 	}
 
-	return status;
+	return CE_NO_ERROR;
 }
 //========================================================================
 // KLptDumpImagingLines
@@ -1047,7 +1041,6 @@ int KLptDumpImagingLines(struct sbig_client *pd, unsigned long arg)
 				sizeof(struct ioc_dump_lines_params));
 	if (status != 0) {
 		sbig_err(pd, "%s: copy_from_user: error\n", __func__);
-		gLastError = CE_BAD_PARAMETER;
 		return -EFAULT;
 	}
 
@@ -1083,7 +1076,7 @@ int KLptDumpImagingLines(struct sbig_client *pd, unsigned long arg)
 					 CLEAR_BLOCK)),
 				0);
 			if (status != CE_NO_ERROR)
-				return (gLastError = status);
+				return status;
 		}
 	}
 	return CE_NO_ERROR;
@@ -1113,7 +1106,6 @@ int KLptDumpTrackingLines(struct sbig_client *pd, unsigned long arg)
 				sizeof(struct ioc_dump_lines_params));
 	if (status != 0) {
 		sbig_err(pd, "%s: copy_from_user: error\n", __func__);
-		gLastError = CE_BAD_PARAMETER;
 		return -EFAULT;
 	}
 
@@ -1139,8 +1131,6 @@ int KLptDumpTrackingLines(struct sbig_client *pd, unsigned long arg)
 	KEnable(pd);
 	// dump the serial register too
 	status = KLptBlockClearPixels(pd, cameraID, CCD_TRACKING, width, 0);
-	if (status != CE_NO_ERROR)
-		gLastError = status;
 	return status;
 }
 //========================================================================
@@ -1168,7 +1158,6 @@ int KLptDumpST5CLines(struct sbig_client *pd, unsigned long arg)
 				sizeof(struct ioc_dump_lines_params));
 	if (status != 0) {
 		sbig_err(pd, "%s: copy_from_user: error\n", __func__);
-		gLastError = CE_BAD_PARAMETER;
 		return -EFAULT;
 	}
 
@@ -1190,8 +1179,6 @@ int KLptDumpST5CLines(struct sbig_client *pd, unsigned long arg)
 	KEnable(pd);
 	// Dump the serial register too
 	status = KLptBlockClearPixels(pd, cameraID, CCD_IMAGING, width, 0);
-	if (status != CE_NO_ERROR)
-		gLastError = status;
 	return status;
 }
 //========================================================================
@@ -1208,8 +1195,7 @@ int KLptClockAD(struct sbig_client *pd, unsigned long arg)
 	status = get_user(len, (unsigned short __user *)arg);
 	if (status != 0) {
 		sbig_err(pd, "%s: get_user(): error\n", __func__);
-		gLastError = CE_BAD_PARAMETER;
-		return status;
+		return -EFAULT;
 	}
 
 	KLptCameraOut(pd, TRACKING_CLOCKS, KBIN1);
@@ -1217,7 +1203,7 @@ int KLptClockAD(struct sbig_client *pd, unsigned long arg)
 		// wait for A/D
 		status = KLptWaitForAD(pd);
 		if (status != CE_NO_ERROR)
-			return (gLastError = status);
+			return status;
 		// trigger A/D for next cycle
 		KLptCameraOut(pd, CONTROL_OUT, AD_TRIGGER);
 		KLptCameraOut(pd, CONTROL_OUT, 0);
@@ -1226,8 +1212,6 @@ int KLptClockAD(struct sbig_client *pd, unsigned long arg)
 	}
 	// wait for last A/D
 	status = KLptWaitForAD(pd);
-	if (status != CE_NO_ERROR)
-		gLastError = status;
 	return status;
 }
 //========================================================================
@@ -1249,7 +1233,6 @@ int KLptClearImagingArray(struct sbig_client *pd, unsigned long arg)
 				sizeof(struct ioc_clear_ccd_params));
 	if (status != 0) {
 		sbig_err(pd, "%s: copy_from_user: error\n", __func__);
-		gLastError = CE_BAD_PARAMETER;
 		return -EFAULT;
 	}
 
@@ -1265,13 +1248,13 @@ int KLptClearImagingArray(struct sbig_client *pd, unsigned long arg)
 	for (i = 0; i < times; i++) {
 		status = KLptVClockImagingCCD(pd, cameraID, IABG_M, 2);
 		if (status != CE_NO_ERROR)
-			return (gLastError = status);
+			return status;
 
 		// do Horizontal Clear of Blocks of 10 Pixels
 		status = KLptHClear(pd,
 				    (short)(cameraID == ST1K_CAMERA ? 6 : 1));
 		if (status != CE_NO_ERROR)
-			return (gLastError = status);
+			return status;
 	}
 	return CE_NO_ERROR;
 }
@@ -1294,7 +1277,6 @@ int KLptClearTrackingArray(struct sbig_client *pd, unsigned long arg)
 				sizeof(struct ioc_clear_ccd_params));
 	if (status != 0) {
 		sbig_err(pd, "%s: copy_from_user: error\n", __func__);
-		gLastError = CE_BAD_PARAMETER;
 		return -EFAULT;
 	}
 
@@ -1326,7 +1308,7 @@ int KLptClearTrackingArray(struct sbig_client *pd, unsigned long arg)
 
 		status = KLptWaitForPLD(pd);
 		if (status != CE_NO_ERROR)
-			return (gLastError = status);
+			return status;
 	}
 	return CE_NO_ERROR;
 }
@@ -1347,7 +1329,6 @@ int KLptGetDriverInfo(struct sbig_client *pd, unsigned long arg)
 			      &gdir0, sizeof(struct driver_info_results));
 	if (status != 0) {
 		sbig_err(pd, "%s: copy_to_user: error\n", __func__);
-		gLastError = CE_BAD_PARAMETER;
 		return -EFAULT;
 	}
 	return CE_NO_ERROR;
@@ -1364,14 +1345,13 @@ int KLptSetBufferSize(struct sbig_client *pd, spinlock_t *lock,
 	status = get_user(buffer_size, (unsigned short __user *)arg);
 	if (status != 0) {
 		sbig_err(pd, "%s: get_user(): error\n", __func__);
-		gLastError = CE_BAD_PARAMETER;
 		return -EFAULT;
 	}
 
 	// allocate new kernel-space I/O buffer
 	kbuff = kmalloc(buffer_size, GFP_KERNEL);
 	if (kbuff == NULL)
-		return pd->buffer_size;
+		goto out;
 
 	// set pointer to new I/O buffer and swap buffers
 	pd->buffer_size = buffer_size;
@@ -1381,18 +1361,15 @@ int KLptSetBufferSize(struct sbig_client *pd, spinlock_t *lock,
 	kfree(pd->buffer);
 	pd->buffer = kbuff;
 	spin_unlock(lock);
-
-	status = pd->buffer_size;
-	sbig_dbg(pd, "%s: %d\n", __func__, status);
-	return status;
+out:
+	sbig_dbg(pd, "%s: %u\n", __func__, pd->buffer_size);
+	return pd->buffer_size;
 }
 //========================================================================
 int KLptGetBufferSize(struct sbig_client *pd)
 {
-	enum par_error status = pd->buffer_size;
-
-	sbig_dbg(pd, "%s: %d\n", __func__, status);
-	return status;
+	sbig_dbg(pd, "%s: %u\n", __func__, pd->buffer_size);
+	return pd->buffer_size;
 }
 //========================================================================
 int KLptTestCommand(struct sbig_client *pd)
@@ -1404,34 +1381,42 @@ int KLptTestCommand(struct sbig_client *pd)
 // KLptGetJiffies
 // Get jiffies, ie. number of ticks from the boot time.
 //========================================================================
-int KLptGetJiffies(unsigned long arg)
+int KLptGetJiffies(struct sbig_client *pd, unsigned long arg)
 {
 	int status = put_user((unsigned long)jiffies,
 			      (unsigned long __user *)arg);
-	return status;
+	if (status != 0) {
+		sbig_err(pd, "%s: put_user: error\n", __func__);
+		return -EFAULT;
+	}
+	return CE_NO_ERROR;
 }
 //========================================================================
 // KLptGetHz
 // Get HZ.
 //========================================================================
-int KLptGetHz(unsigned long arg)
+int KLptGetHz(struct sbig_client *pd, unsigned long arg)
 {
 	int status = put_user((unsigned long)HZ,
 			      (unsigned long __user *)arg);
-	return status;
+	if (status != 0) {
+		sbig_err(pd, "%s: put_user: error\n", __func__);
+		return -EFAULT;
+	}
+	return CE_NO_ERROR;
 }
 //========================================================================
 // KSbigLptGetLastError
 //========================================================================
-int KSbigLptGetLastError(unsigned long arg)
+int KSbigLptGetLastError(struct sbig_client *pd, unsigned long arg)
 {
-	int status = put_user(gLastError,
+	int status = put_user(pd->last_error,
 			      (unsigned short __user *)arg);
-	if (status == 0)
-		gLastError = CE_NO_ERROR;
-	else
-		gLastError = CE_BAD_PARAMETER;
-	return status;
+	if (status != 0) {
+		sbig_err(pd, "%s: put_user: error\n", __func__);
+		return -EFAULT;
+	}
+	return CE_NO_ERROR;
 }
 //========================================================================
 // sbig_ioctl - entry point
@@ -1444,8 +1429,8 @@ long sbig_ioctl(struct sbig_client *pd, unsigned int cmd, unsigned long arg,
 	if (_IOC_TYPE(cmd) != IOCTL_BASE) {
 		sbig_err(pd, "%s: error: IOCTL base %d, must be %d\n",
 			 __func__, _IOC_TYPE(cmd), IOCTL_BASE);
-		gLastError = CE_BAD_PARAMETER;
-		return -ENOTTY;
+		status = -ENOTTY;
+		goto out_last_error;
 	}
 
 	switch (cmd) {
@@ -1486,15 +1471,15 @@ long sbig_ioctl(struct sbig_client *pd, unsigned int cmd, unsigned long arg,
 		break;
 
 	case IOCTL_GET_JIFFIES:
-		status = KLptGetJiffies(arg);
+		status = KLptGetJiffies(pd, arg);
 		break;
 
 	case IOCTL_GET_HZ:
-		status = KLptGetHz(arg);
+		status = KLptGetHz(pd, arg);
 		break;
 
 	case IOCTL_GET_LAST_ERROR:
-		status = KSbigLptGetLastError(arg);
+		status = KSbigLptGetLastError(pd, arg);
 		break;
 
 	case IOCTL_DUMP_ILINES:
@@ -1523,10 +1508,14 @@ long sbig_ioctl(struct sbig_client *pd, unsigned int cmd, unsigned long arg,
 
 	case IOCTL_SET_BUFFER_SIZE:
 		status = KLptSetBufferSize(pd, spin_lock, arg);
+		if (status > 0)
+			goto out;
 		break;
 
 	case IOCTL_GET_BUFFER_SIZE:
 		status = KLptGetBufferSize(pd);
+		if (status > 0)
+			goto out;
 		break;
 
 	case IOCTL_TEST_COMMAND:
@@ -1535,13 +1524,16 @@ long sbig_ioctl(struct sbig_client *pd, unsigned int cmd, unsigned long arg,
 
 	default:
 		sbig_err(pd, "undefined ioctl (%d)\n", cmd);
-		gLastError = CE_BAD_PARAMETER;
-		return -ENOTTY;
+		status = -ENOTTY;
+		goto out_last_error;
 	}
 
-	if (status != CE_NO_ERROR)
-		gLastError = status;
-
+out_last_error:
+	if (status < 0)
+		pd->last_error = CE_BAD_PARAMETER;
+	else if (status != CE_NO_ERROR)
+		pd->last_error = status;
+out:
 	return status;
 }
 //========================================================================

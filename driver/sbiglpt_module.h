@@ -13,6 +13,7 @@ struct sbig_client {
 	unsigned char imaging_clocks_out;
 	unsigned char noBytesRd;
 	unsigned char noBytesWr;
+	unsigned short last_error;
 	unsigned short buffer_size;
 	char *buffer;
 	struct device *dev;
