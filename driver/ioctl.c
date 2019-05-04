@@ -1378,34 +1378,42 @@ int KLptTestCommand(struct sbig_client *pd)
 // KLptGetJiffies
 // Get jiffies, ie. number of ticks from the boot time.
 //========================================================================
-int KLptGetJiffies(unsigned long arg)
+int KLptGetJiffies(struct sbig_client *pd, unsigned long arg)
 {
 	int status = put_user((unsigned long)jiffies,
 			      (unsigned long __user *)arg);
-	return status;
+	if (status != 0) {
+		sbig_err(pd, "%s: put_user: error\n", __func__);
+		return -EFAULT;
+	}
+	return CE_NO_ERROR;
 }
 //========================================================================
 // KLptGetHz
 // Get HZ.
 //========================================================================
-int KLptGetHz(unsigned long arg)
+int KLptGetHz(struct sbig_client *pd, unsigned long arg)
 {
 	int status = put_user((unsigned long)HZ,
 			      (unsigned long __user *)arg);
-	return status;
+	if (status != 0) {
+		sbig_err(pd, "%s: put_user: error\n", __func__);
+		return -EFAULT;
+	}
+	return CE_NO_ERROR;
 }
 //========================================================================
 // KSbigLptGetLastError
 //========================================================================
-int KSbigLptGetLastError(unsigned long arg)
+int KSbigLptGetLastError(struct sbig_client *pd, unsigned long arg)
 {
 	int status = put_user(gLastError,
 			      (unsigned short __user *)arg);
-	if (status == 0)
-		gLastError = CE_NO_ERROR;
-	else
-		gLastError = CE_BAD_PARAMETER;
-	return status;
+	if (status != 0) {
+		sbig_err(pd, "%s: put_user: error\n", __func__);
+		return -EFAULT;
+	}
+	return CE_NO_ERROR;
 }
 //========================================================================
 // sbig_ioctl - entry point
@@ -1460,15 +1468,15 @@ long sbig_ioctl(struct sbig_client *pd, unsigned int cmd, unsigned long arg,
 		break;
 
 	case IOCTL_GET_JIFFIES:
-		status = KLptGetJiffies(arg);
+		status = KLptGetJiffies(pd, arg);
 		break;
 
 	case IOCTL_GET_HZ:
-		status = KLptGetHz(arg);
+		status = KLptGetHz(pd, arg);
 		break;
 
 	case IOCTL_GET_LAST_ERROR:
-		status = KSbigLptGetLastError(arg);
+		status = KSbigLptGetLastError(pd, arg);
 		break;
 
 	case IOCTL_DUMP_ILINES:
