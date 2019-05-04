@@ -5,8 +5,8 @@
 
 #include <linux/parport.h>
 
-#define DRIVER_VERSION 0x0435 // BCD version
-#define DRIVER_STRING "4.35"
+#define DRIVER_VERSION_BCD	0x0435
+#define DRIVER_VERSION_STRING	"4.35"
 
 struct sbig_client {
 	unsigned char control_out;

@@ -1339,8 +1339,8 @@ int KLptGetDriverInfo(struct sbig_client *pd, unsigned long arg)
 	int status;
 	struct driver_info_results gdir0;
 
-	gdir0.version = DRIVER_VERSION;
-	strcpy(gdir0.name, DRIVER_STRING);
+	gdir0.version = DRIVER_VERSION_BCD;
+	strcpy(gdir0.name, DRIVER_VERSION_STRING);
 	gdir0.maxRequest = 1;
 
 	status = copy_to_user((struct driver_info_results __user *)arg,
