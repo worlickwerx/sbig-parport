@@ -1345,7 +1345,7 @@ int KLptSetBufferSize(struct sbig_client *pd, spinlock_t *lock,
 	// allocate new kernel-space I/O buffer
 	kbuff = kmalloc(buffer_size, GFP_KERNEL);
 	if (kbuff == NULL)
-		return pd->buffer_size;
+		goto out;
 
 	// set pointer to new I/O buffer and swap buffers
 	pd->buffer_size = buffer_size;
@@ -1355,18 +1355,15 @@ int KLptSetBufferSize(struct sbig_client *pd, spinlock_t *lock,
 	kfree(pd->buffer);
 	pd->buffer = kbuff;
 	spin_unlock(lock);
-
-	status = pd->buffer_size;
-	sbig_dbg(pd, "%s: %d\n", __func__, status);
-	return status;
+out:
+	sbig_dbg(pd, "%s: %u\n", __func__, pd->buffer_size);
+	return pd->buffer_size;
 }
 //========================================================================
 int KLptGetBufferSize(struct sbig_client *pd)
 {
-	enum par_error status = pd->buffer_size;
-
-	sbig_dbg(pd, "%s: %d\n", __func__, status);
-	return status;
+	sbig_dbg(pd, "%s: %u\n", __func__, pd->buffer_size);
+	return pd->buffer_size;
 }
 //========================================================================
 int KLptTestCommand(struct sbig_client *pd)
