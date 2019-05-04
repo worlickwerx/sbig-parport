@@ -124,8 +124,9 @@ static void sbig_attach(struct parport *port)
 			__func__, port->name, SBIG_NO);
 		return;
 	}
-	sbig_table[nr].pardev = parport_register_device(port, "sbiglpt", NULL,
-							NULL, NULL, 0, NULL);
+	sbig_table[nr].pardev = parport_register_device(port, "sbiglpt",
+							NULL, NULL, NULL,
+							PARPORT_DEV_EXCL, NULL);
 	if (sbig_table[nr].pardev == NULL) {
 		pr_err("%s: parport_register_device failed\n", __func__);
 		return;
