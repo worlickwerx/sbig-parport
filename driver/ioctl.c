@@ -1543,7 +1543,9 @@ long sbig_ioctl(struct sbig_client *pd, unsigned int cmd, unsigned long arg,
 		return -ENOTTY;
 	}
 
-	if (status != CE_NO_ERROR)
+	if (status < 0)
+		gLastError = CE_BAD_PARAMETER;
+	else if (status != CE_NO_ERROR)
 		gLastError = status;
 out:
 	return status;
