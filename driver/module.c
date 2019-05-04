@@ -23,6 +23,8 @@
 
 #include "sbiglpt_module.h"
 
+#define DEFAULT_BUFFER_SIZE 4096 // user space may request realloc
+
 #define SBIG_NO 3
 static struct {
 	struct pardevice *pardev;
@@ -73,13 +75,13 @@ static int sbig_open(struct inode *inode, struct file *file)
 		rc = -ENOMEM;
 		goto out_unlock;
 	}
-	pd->buffer = kzalloc(LDEFAULT_BUFFER_SIZE, GFP_KERNEL);
+	pd->buffer = kzalloc(DEFAULT_BUFFER_SIZE, GFP_KERNEL);
 	if (!pd->buffer) {
 		kfree(pd);
 		rc = -ENOMEM;
 		goto out_unlock;
 	}
-	pd->buffer_size = LDEFAULT_BUFFER_SIZE;
+	pd->buffer_size = DEFAULT_BUFFER_SIZE;
 	pd->port = sbig_table[minor].pardev->port;
 	pd->dev = sbig_table[minor].dev;
 	file->private_data = pd;
