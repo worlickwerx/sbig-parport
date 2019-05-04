@@ -1523,10 +1523,14 @@ long sbig_ioctl(struct sbig_client *pd, unsigned int cmd, unsigned long arg,
 
 	case IOCTL_SET_BUFFER_SIZE:
 		status = KLptSetBufferSize(pd, spin_lock, arg);
+		if (status > 0)
+			goto out;
 		break;
 
 	case IOCTL_GET_BUFFER_SIZE:
 		status = KLptGetBufferSize(pd);
+		if (status > 0)
+			goto out;
 		break;
 
 	case IOCTL_TEST_COMMAND:
@@ -1541,7 +1545,7 @@ long sbig_ioctl(struct sbig_client *pd, unsigned int cmd, unsigned long arg,
 
 	if (status != CE_NO_ERROR)
 		gLastError = status;
-
+out:
 	return status;
 }
 //========================================================================
