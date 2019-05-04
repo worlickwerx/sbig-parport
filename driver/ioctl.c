@@ -127,10 +127,10 @@ enum readout_control_bits {
 void KLptCameraOut(struct sbig_client *pd, unsigned char reg,
 		   unsigned char val)
 {
-	sbig_outb(pd, (unsigned char)(reg + val));
-	sbig_outb(pd, (unsigned char)(reg + val + 0x80));
-	sbig_outb(pd, (unsigned char)(reg + val + 0x80));
-	sbig_outb(pd, (unsigned char)(reg + val));
+	sbig_outb(pd, reg + val);
+	sbig_outb(pd, reg + val + 0x80);
+	sbig_outb(pd, reg + val + 0x80);
+	sbig_outb(pd, (reg + val));
 
 	if (reg == CONTROL_OUT)
 		pd->control_out = val;
@@ -187,8 +187,7 @@ unsigned char KLptMicroStat(struct sbig_client *pd)
 {
 	unsigned char val;
 
-	KLptCameraOut(pd, CONTROL_OUT,
-		      (unsigned char)(pd->control_out | MICRO_SELECT));
+	KLptCameraOut(pd, CONTROL_OUT, (pd->control_out | MICRO_SELECT));
 	val = KLptCameraIn(pd, AD3_MDI);
 	if (pd->control_out & HSO)
 		return (val & HSI);
@@ -203,13 +202,10 @@ unsigned char KLptMicroIn(struct sbig_client *pd, unsigned char ackIt)
 {
 	unsigned char val;
 
-	KLptCameraOut(pd, CONTROL_OUT,
-		      (unsigned char)(pd->control_out | MICRO_SELECT));
+	KLptCameraOut(pd, CONTROL_OUT, (pd->control_out | MICRO_SELECT));
 	val = KLptCameraIn(pd, AD3_MDI) & 0x0F;
-	if (ackIt) {
-		KLptCameraOut(pd, CONTROL_OUT,
-			      (unsigned char)(pd->control_out ^ HSO));
-	}
+	if (ackIt)
+		KLptCameraOut(pd, CONTROL_OUT, (pd->control_out ^ HSO));
 	return val;
 }
 //========================================================================
@@ -220,7 +216,7 @@ unsigned char KLptMicroIn(struct sbig_client *pd, unsigned char ackIt)
 void KLptMicroOut(struct sbig_client *pd, unsigned char val)
 {
 	KLptCameraOut(pd, MICRO_OUT, val);
-	KLptCameraOut(pd, CONTROL_OUT, (unsigned char)(pd->control_out ^ HSO));
+	KLptCameraOut(pd, CONTROL_OUT, (pd->control_out ^ HSO));
 }
 //========================================================================
 // KLptReadyToRx
@@ -269,13 +265,11 @@ int KLptSendMicroBlock(struct sbig_client *pd, unsigned long arg)
 				break;
 			if (i == 1)
 				KLptCameraOut(pd, CONTROL_OUT,
-					      (unsigned char)(pd->control_out &
-							      ~MICRO_SYNC));
+					      (pd->control_out & ~MICRO_SYNC));
 			if ((i % 2) == 0)
-				KLptMicroOut(pd,
-					     (unsigned char)((*p >> 4) & 0x0f));
+				KLptMicroOut(pd, ((*p >> 4) & 0x0f));
 			else
-				KLptMicroOut(pd, (unsigned char)(*p++ & 0x0f));
+				KLptMicroOut(pd, (*p++ & 0x0f));
 			i++;
 			t0 = jiffies;
 		} else {
@@ -324,8 +318,7 @@ int KLptGetMicroBlock(struct sbig_client *pd, unsigned long arg)
 			switch (state) {
 			case 0: // waiting for start of packet
 				rx_len = 1; // 1
-				c = KLptMicroIn(pd, (unsigned char)(rx_len <
-								    cmp_len));
+				c = KLptMicroIn(pd, (rx_len < cmp_len));
 				*kbuf = c << 4;
 				state++;
 				if (!(c == 0xA || c == (CAN >> 4) ||
@@ -335,8 +328,7 @@ int KLptGetMicroBlock(struct sbig_client *pd, unsigned long arg)
 				break;
 			case 1: // waiting for start of packet
 				rx_len++; // 2
-				c = KLptMicroIn(pd, (unsigned char)(rx_len <
-								    cmp_len));
+				c = KLptMicroIn(pd, (rx_len < cmp_len));
 				c += *kbuf;
 				*kbuf++ = c;
 				state++;
@@ -351,15 +343,13 @@ int KLptGetMicroBlock(struct sbig_client *pd, unsigned long arg)
 				break;
 			case 2: // waiting for command
 				rx_len++; // 3
-				c = KLptMicroIn(pd, (unsigned char)(rx_len <
-								    cmp_len));
+				c = KLptMicroIn(pd, (rx_len < cmp_len));
 				*kbuf = c << 4;
 				state++;
 				break;
 			case 3: // waiting for len
 				rx_len++; // 4
-				c = KLptMicroIn(pd, (unsigned char)(rx_len <
-								    cmp_len));
+				c = KLptMicroIn(pd, (rx_len < cmp_len));
 				*kbuf++ += c;
 				packet_len = c << 1;
 				if ((lmb.length << 1) !=
@@ -369,11 +359,8 @@ int KLptGetMicroBlock(struct sbig_client *pd, unsigned long arg)
 				break;
 			case 4: // receiving data
 				rx_len++; // 5,6,7...
-				c = KLptMicroIn(
-					pd,
-					(unsigned char)(rx_len < packet_len +
-									 4 &&
-							rx_len < cmp_len));
+				c = KLptMicroIn(pd, (rx_len < packet_len + 4
+							&& rx_len < cmp_len));
 				if ((rx_len % 2) == 1)
 					*kbuf = c << 4;
 				else
@@ -418,8 +405,7 @@ int KLptSetVdd(struct sbig_client *pd, unsigned long arg)
 
 	// raise or lower the Vdd
 	svdd.vddWasLow = ((pd->imaging_clocks_out & TRG_H) == TRG_H);
-	KLptCameraOut(pd, IMAGING_CLOCKS,
-		      (unsigned char)(svdd.raiseIt ? 0 : TRG_H));
+	KLptCameraOut(pd, IMAGING_CLOCKS, (svdd.raiseIt ? 0 : TRG_H));
 
 	if (copy_to_user((struct ioc_set_vdd __user *)arg, &svdd,
 			 sizeof(struct ioc_set_vdd)) != 0) {
@@ -596,38 +582,30 @@ int KLptVClockImagingCCD(struct sbig_client *pd, enum camera_type cameraID,
 	}
 
 	if (cameraID == ST1K_CAMERA && hClears != 0) {
-		KLptCameraOut(pd, IMAGING_CLOCKS,
-			      (unsigned char)(baseClks | v1_h)); // V1 high
+		KLptCameraOut(pd, IMAGING_CLOCKS, (baseClks | v1_h)); // V1 high
 		status = KLptHClear(pd, hClears);
 		if (status != CE_NO_ERROR)
 			goto out;
-		KLptCameraOut(pd, IMAGING_CLOCKS,
-			      (unsigned char)(baseClks | v2_h)); // V2 high
+		KLptCameraOut(pd, IMAGING_CLOCKS, (baseClks | v2_h)); // V2 high
 		status = KLptHClear(pd, hClears);
 		if (status != CE_NO_ERROR)
 			goto out;
-		KLptCameraOut(pd, IMAGING_CLOCKS,
-			      (unsigned char)(baseClks | v1_h)); // V1 high
+		KLptCameraOut(pd, IMAGING_CLOCKS, (baseClks | v1_h)); // V1 high
 		status = KLptHClear(pd, hClears);
 		if (status != CE_NO_ERROR)
 			goto out;
-		KLptCameraOut(pd, IMAGING_CLOCKS,
-			      (unsigned char)(baseClks)); // all low
+		KLptCameraOut(pd, IMAGING_CLOCKS, (baseClks)); // all low
 		status = KLptHClear(pd, hClears);
 		if (status != CE_NO_ERROR)
 			goto out;
 	} else {
-		KLptCameraOut(pd, IMAGING_CLOCKS,
-			      (unsigned char)(baseClks | v1_h)); // V1 high
+		KLptCameraOut(pd, IMAGING_CLOCKS, (baseClks | v1_h)); // V1 high
 		KLptIoDelay(pd, vclock_delay);
-		KLptCameraOut(pd, IMAGING_CLOCKS,
-			      (unsigned char)(baseClks | v2_h)); // V2 high
+		KLptCameraOut(pd, IMAGING_CLOCKS, (baseClks | v2_h)); // V2 high
 		KLptIoDelay(pd, vclock_delay);
-		KLptCameraOut(pd, IMAGING_CLOCKS,
-			      (unsigned char)(baseClks | v1_h)); // V1 high
+		KLptCameraOut(pd, IMAGING_CLOCKS, (baseClks | v1_h)); // V1 high
 		KLptIoDelay(pd, vclock_delay);
-		KLptCameraOut(pd, IMAGING_CLOCKS,
-			      (unsigned char)(baseClks)); // all low
+		KLptCameraOut(pd, IMAGING_CLOCKS, (baseClks)); // all low
 		KLptIoDelay(pd, vclock_delay);
 	}
 	return CE_NO_ERROR;
@@ -663,8 +641,7 @@ int KLptBlockClearPixels(struct sbig_client *pd, enum camera_type cameraID,
 
 	// clear blocks of CLEAR_BLOCK pixels
 	for (j = bulk; j > 0; j--) {
-		KLptCameraOut(pd, CONTROL_OUT,
-			      (unsigned char)(ccd_select + AD_TRIGGER));
+		KLptCameraOut(pd, CONTROL_OUT, (ccd_select + AD_TRIGGER));
 		KLptCameraOut(pd, CONTROL_OUT, ccd_select);
 		status = KLptWaitForPLD(pd);
 		if (status != CE_NO_ERROR)
@@ -689,8 +666,7 @@ int KLptBlockClearPixels(struct sbig_client *pd, enum camera_type cameraID,
 	}
 	// clear remainder pixels
 	for (j = individual; j > 0; j--) {
-		KLptCameraOut(pd, CONTROL_OUT,
-			      (unsigned char)(ccd_select + AD_TRIGGER));
+		KLptCameraOut(pd, CONTROL_OUT, (ccd_select + AD_TRIGGER));
 		KLptCameraOut(pd, CONTROL_OUT, ccd_select);
 		status = KLptWaitForPLD(pd);
 		if (status != CE_NO_ERROR)
@@ -835,8 +811,7 @@ int KLptGetPixels(struct sbig_client *pd, unsigned long arg)
 		}
 
 		// trigger A/D for next cycle
-		KLptCameraOut(pd, CONTROL_OUT,
-			      (unsigned char)(ccd_select + AD_TRIGGER));
+		KLptCameraOut(pd, CONTROL_OUT, (ccd_select + AD_TRIGGER));
 		KLptCameraOut(pd, CONTROL_OUT, ccd_select);
 		K_LPT_READ_AD16(pd, u);
 		u &= mask;
@@ -977,8 +952,7 @@ int KLptGetArea(struct sbig_client *pd, unsigned long arg)
 				}
 			}
 			// trigger A/D for next cycle
-			KLptCameraOut(pd, CONTROL_OUT,
-				      (unsigned char)(ccd_select + AD_TRIGGER));
+			KLptCameraOut(pd, CONTROL_OUT, (ccd_select + AD_TRIGGER));
 			KLptCameraOut(pd, CONTROL_OUT, ccd_select);
 			K_LPT_READ_AD16(pd, u);
 			u &= mask;
@@ -1065,8 +1039,7 @@ int KLptDumpImagingLines(struct sbig_client *pd, unsigned long arg)
 	for (i = 0; i < len; i++) {
 		// do vertical shift of lines
 		for (j = 0; j < vertBin; j++) {
-			KLptVClockImagingCCD(pd, cameraID,
-					     (unsigned char)(ic | IABG_M), 0);
+			KLptVClockImagingCCD(pd, cameraID, (ic | IABG_M), 0);
 		}
 		if ((i % dumpRatio) == dumpRatio - 1 || i >= len - 3) {
 			status = KLptBlockClearPixels(
@@ -1362,13 +1335,13 @@ int KLptSetBufferSize(struct sbig_client *pd, spinlock_t *lock,
 	pd->buffer = kbuff;
 	spin_unlock(lock);
 out:
-	sbig_dbg(pd, "%s: %u\n", __func__, pd->buffer_size);
+	sbig_dbg(pd, "%s: %d\n", __func__, pd->buffer_size);
 	return pd->buffer_size;
 }
 //========================================================================
 int KLptGetBufferSize(struct sbig_client *pd)
 {
-	sbig_dbg(pd, "%s: %u\n", __func__, pd->buffer_size);
+	sbig_dbg(pd, "%s: %d\n", __func__, pd->buffer_size);
 	return pd->buffer_size;
 }
 //========================================================================
