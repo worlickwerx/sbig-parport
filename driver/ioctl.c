@@ -472,7 +472,7 @@ int KLptWaitForPLD(struct sbig_client *pd)
 		if (!(KLptCameraIn(pd, AD0) & CIP))
 			break;
 		if (t0++ >= CONVERSION_DELAY)
-			return (gLastError = CE_AD_TIMEOUT);
+			return CE_AD_TIMEOUT;
 	}
 	return CE_NO_ERROR;
 }
@@ -489,7 +489,7 @@ int KLptWaitForAD(struct sbig_client *pd)
 		if (!(sbig_inb(pd) & 0x80))
 			break;
 		if (t0++ >= CONVERSION_DELAY)
-			return (gLastError = CE_AD_TIMEOUT);
+			return CE_AD_TIMEOUT;
 	}
 	return CE_NO_ERROR;
 }
@@ -509,7 +509,7 @@ int KLptHClear(struct sbig_client *pd, short times)
 		// wait for PLD
 		status = KLptWaitForPLD(pd);
 		if (status != CE_NO_ERROR)
-			return (gLastError = status);
+			return status;
 	}
 	return CE_NO_ERROR;
 }
