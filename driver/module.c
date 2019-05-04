@@ -231,3 +231,6 @@ module_exit(sbig_cleanup_module);
 #endif
 MODULE_LICENSE(SBIGLPT_LICENSE);
 MODULE_VERSION(DRIVER_VERSION_STRING);
+MODULE_AUTHOR("Jan Soldan");
+MODULE_AUTHOR("Matt Longmire");
+MODULE_AUTHOR("Jim Garlick");
