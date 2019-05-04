@@ -11,8 +11,6 @@
 struct sbig_client {
 	u8 control_out;
 	u8 imaging_clocks_out;
-	u8 noBytesRd;
-	u8 noBytesWr;
 	u16 last_error;
 	u16 buffer_size;
 	char *buffer;

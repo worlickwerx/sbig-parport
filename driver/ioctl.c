@@ -281,7 +281,6 @@ int KLptSendMicroBlock(struct sbig_client *pd, unsigned long arg)
 			}
 		}
 	}
-	pd->noBytesWr = (i + 1) / 2;
 
 	return status;
 }
@@ -376,8 +375,6 @@ int KLptGetMicroBlock(struct sbig_client *pd, unsigned long arg)
 				status = CE_RX_TIMEOUT;
 		}
 	} while ((state < 5) && (status == CE_NO_ERROR) && (rx_len < cmp_len));
-
-	pd->noBytesRd = (unsigned long)(rx_len / 2);
 
 	if (status == CE_NO_ERROR) {
 		status = copy_to_user(lmb.pBuffer, pd->buffer, lmb.length);
@@ -745,7 +742,6 @@ int KLptGetPixels(struct sbig_client *pd, unsigned long arg)
 	if (lgpp.length < (unsigned long)(2L * len))
 		return CE_BAD_PARAMETER;
 
-	pd->noBytesRd = 0;
 	mask = (cameraID == ST237_CAMERA && !st237A) ? 0x0FFF : 0xFFFF;
 
 	// disable interrupts
@@ -832,7 +828,6 @@ int KLptGetPixels(struct sbig_client *pd, unsigned long arg)
 				((right + CLEAR_BLOCK - 1) / CLEAR_BLOCK)),
 			0);
 	}
-	pd->noBytesRd = len << 1;
 
 	status = copy_to_user(lgpp.dest, pd->buffer, lgpp.length);
 	if (status != 0) {
@@ -876,7 +871,6 @@ int KLptGetArea(struct sbig_client *pd, unsigned long arg)
 	right = lgap.gap.right;
 	horzBin = lgap.gap.horzBin;
 	height = lgap.gap.height;
-	pd->noBytesRd = 0;
 	ivcp.cameraID = cameraID;
 	ivcp.clearWidth = lgap.gap.clearWidth;
 	ivcp.onVertBin = lgap.gap.vertBin;
@@ -974,8 +968,6 @@ int KLptGetArea(struct sbig_client *pd, unsigned long arg)
 					 CLEAR_BLOCK)),
 				0);
 		}
-
-		pd->noBytesRd += len << 1;
 	}
 
 	// copy area back to the user space
