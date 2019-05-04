@@ -38,15 +38,6 @@
 #define IOCTL_GET_BUFFER_SIZE _IO(IOCTL_BASE, 32)
 #define IOCTL_TEST_COMMAND _IO(IOCTL_BASE, 33)
 
-#define IOCTL_SUBMIT_PIXEL_IN_URB _IOWR(IOCTL_BASE, 34, char *)
-#define IOCTL_GET_PIXEL_IN_URB _IOWR(IOCTL_BASE, 35, char *)
-#define IOCTL_GET_PIXEL_BLOCK _IOWR(IOCTL_BASE, 36, char *)
-
-struct ioc_camera_out_params {
-	unsigned char reg;
-	unsigned char value;
-};
-
 struct ioc_get_pixels_params {
 	short /* CAMERA_TYPE */ cameraID;
 	short /* CCD_REQUEST */ ccd;
