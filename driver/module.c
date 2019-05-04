@@ -23,6 +23,8 @@
 
 #include "sbiglpt_module.h"
 
+#define DEFAULT_BUFFER_SIZE 4096 // user space may request realloc
+
 #define SBIG_NO 3
 static struct {
 	struct pardevice *pardev;
@@ -73,13 +75,13 @@ static int sbig_open(struct inode *inode, struct file *file)
 		rc = -ENOMEM;
 		goto out_unlock;
 	}
-	pd->buffer = kzalloc(LDEFAULT_BUFFER_SIZE, GFP_KERNEL);
+	pd->buffer = kzalloc(DEFAULT_BUFFER_SIZE, GFP_KERNEL);
 	if (!pd->buffer) {
 		kfree(pd);
 		rc = -ENOMEM;
 		goto out_unlock;
 	}
-	pd->buffer_size = LDEFAULT_BUFFER_SIZE;
+	pd->buffer_size = DEFAULT_BUFFER_SIZE;
 	pd->port = sbig_table[minor].pardev->port;
 	pd->dev = sbig_table[minor].dev;
 	file->private_data = pd;
@@ -124,8 +126,9 @@ static void sbig_attach(struct parport *port)
 			__func__, port->name, SBIG_NO);
 		return;
 	}
-	sbig_table[nr].pardev = parport_register_device(port, "sbiglpt", NULL,
-							NULL, NULL, 0, NULL);
+	sbig_table[nr].pardev = parport_register_device(port, "sbiglpt",
+							NULL, NULL, NULL,
+							PARPORT_DEV_EXCL, NULL);
 	if (sbig_table[nr].pardev == NULL) {
 		pr_err("%s: parport_register_device failed\n", __func__);
 		return;
@@ -227,3 +230,8 @@ module_exit(sbig_cleanup_module);
 #define SBIGLPT_LICENSE "UNLICENSED"
 #endif
 MODULE_LICENSE(SBIGLPT_LICENSE);
+MODULE_VERSION(DRIVER_VERSION_STRING);
+MODULE_AUTHOR("Jan Soldan");
+MODULE_AUTHOR("Matt Longmire");
+MODULE_AUTHOR("Jim Garlick");
+MODULE_DESCRIPTION("Parport driver for SBIG parallel port astronomy cameras");

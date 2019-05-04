@@ -7,7 +7,7 @@ obj-m += sbiglpt.o
 
 sbiglpt-y = \
 	module.o \
-	sbiglpt.o
+	ioctl.o
 
 all: modules
 
@@ -16,4 +16,4 @@ modules clean:
 
 check:
 	scripts/checkpatch.pl --no-tree -f --ignore=LINUX_VERSION_CODE \
-		sbiglpt.c module.c sbiglpt.h sbiglpt_module.h
+		ioctl.c module.c sbiglpt.h sbiglpt_module.h
