@@ -120,9 +120,6 @@ enum readout_control_bits {
 	u += (unsigned short)(sbig_inb(pd) & 0x78) >> 3; \
 } while (0)
 
-// Global variables:
-unsigned short gLastError;
-
 //========================================================================
 // KLptCameraOut
 // Write data to one of the Camera Registers.
@@ -583,7 +580,7 @@ int KLptRVClockTrackingCCD(struct sbig_client *pd,
 int KLptVClockImagingCCD(struct sbig_client *pd, enum camera_type cameraID,
 			 unsigned char baseClks, short hClears)
 {
-	int status = CE_NO_ERROR;
+	int status;
 	unsigned char v1_h, v2_h;
 
 	short vclock_delay =
@@ -603,22 +600,22 @@ int KLptVClockImagingCCD(struct sbig_client *pd, enum camera_type cameraID,
 			      (unsigned char)(baseClks | v1_h)); // V1 high
 		status = KLptHClear(pd, hClears);
 		if (status != CE_NO_ERROR)
-			return (gLastError = status);
+			goto out;
 		KLptCameraOut(pd, IMAGING_CLOCKS,
 			      (unsigned char)(baseClks | v2_h)); // V2 high
 		status = KLptHClear(pd, hClears);
 		if (status != CE_NO_ERROR)
-			return (gLastError = status);
+			goto out;
 		KLptCameraOut(pd, IMAGING_CLOCKS,
 			      (unsigned char)(baseClks | v1_h)); // V1 high
 		status = KLptHClear(pd, hClears);
 		if (status != CE_NO_ERROR)
-			return (gLastError = status);
+			goto out;
 		KLptCameraOut(pd, IMAGING_CLOCKS,
 			      (unsigned char)(baseClks)); // all low
 		status = KLptHClear(pd, hClears);
 		if (status != CE_NO_ERROR)
-			return (gLastError = status);
+			goto out;
 	} else {
 		KLptCameraOut(pd, IMAGING_CLOCKS,
 			      (unsigned char)(baseClks | v1_h)); // V1 high
@@ -633,6 +630,9 @@ int KLptVClockImagingCCD(struct sbig_client *pd, enum camera_type cameraID,
 			      (unsigned char)(baseClks)); // all low
 		KLptIoDelay(pd, vclock_delay);
 	}
+	return CE_NO_ERROR;
+out:
+	pd->last_error = status;
 	return status;
 }
 //========================================================================
@@ -643,7 +643,7 @@ int KLptVClockImagingCCD(struct sbig_client *pd, enum camera_type cameraID,
 int KLptBlockClearPixels(struct sbig_client *pd, enum camera_type cameraID,
 			 enum ccd_request ccd, short len, short readoutMode)
 {
-	int status = CE_NO_ERROR;
+	int status;
 	short j, bulk, individual;
 	unsigned char ccd_select;
 
@@ -668,7 +668,7 @@ int KLptBlockClearPixels(struct sbig_client *pd, enum camera_type cameraID,
 		KLptCameraOut(pd, CONTROL_OUT, ccd_select);
 		status = KLptWaitForPLD(pd);
 		if (status != CE_NO_ERROR)
-			return (gLastError = status);
+			goto out;
 	}
 
 	if (cameraID == ST5C_CAMERA || cameraID == ST237_CAMERA) {
@@ -694,8 +694,11 @@ int KLptBlockClearPixels(struct sbig_client *pd, enum camera_type cameraID,
 		KLptCameraOut(pd, CONTROL_OUT, ccd_select);
 		status = KLptWaitForPLD(pd);
 		if (status != CE_NO_ERROR)
-			return (gLastError = status);
+			goto out;
 	}
+	return CE_NO_ERROR;
+out:
+	pd->last_error = status;
 	return status;
 }
 //========================================================================
@@ -705,7 +708,7 @@ int KLptBlockClearPixels(struct sbig_client *pd, enum camera_type cameraID,
 int KLptRVClockImagingCCD(struct sbig_client *pd,
 			  struct ioc_vclock_ccd_params *pParams)
 {
-	int status = CE_NO_ERROR;
+	int status;
 	enum camera_type cameraID = pParams->cameraID;
 	short onVertBin = pParams->onVertBin;
 	short clearWidth = pParams->clearWidth;
@@ -715,7 +718,7 @@ int KLptRVClockImagingCCD(struct sbig_client *pd,
 	// this needs to be passed incase its the large KAF1600 CCD
 	status = KLptBlockClearPixels(pd, cameraID, CCD_IMAGING, clearWidth, 0);
 	if (status != CE_NO_ERROR)
-		return (gLastError = status);
+		goto out;
 
 	// do vertical shift into readout register
 	KDisable(pd);
@@ -725,6 +728,9 @@ int KLptRVClockImagingCCD(struct sbig_client *pd,
 		KLptVClockImagingCCD(pd, cameraID, IABG_M, 0);
 	KEnable(pd);
 	return CE_NO_ERROR;
+out:
+	pd->last_error = status;
+	return status;
 }
 //========================================================================
 // KLptGetPixels
@@ -1404,7 +1410,7 @@ int KLptGetHz(struct sbig_client *pd, unsigned long arg)
 //========================================================================
 int KSbigLptGetLastError(struct sbig_client *pd, unsigned long arg)
 {
-	int status = put_user(gLastError,
+	int status = put_user(pd->last_error,
 			      (unsigned short __user *)arg);
 	if (status != 0) {
 		sbig_err(pd, "%s: put_user: error\n", __func__);
@@ -1524,9 +1530,9 @@ long sbig_ioctl(struct sbig_client *pd, unsigned int cmd, unsigned long arg,
 
 out_last_error:
 	if (status < 0)
-		gLastError = CE_BAD_PARAMETER;
+		pd->last_error = CE_BAD_PARAMETER;
 	else if (status != CE_NO_ERROR)
-		gLastError = status;
+		pd->last_error = status;
 out:
 	return status;
 }
