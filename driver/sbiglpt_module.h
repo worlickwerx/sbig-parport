@@ -9,12 +9,12 @@
 #define DRIVER_VERSION_STRING	"4.35"
 
 struct sbig_client {
-	unsigned char control_out;
-	unsigned char imaging_clocks_out;
-	unsigned char noBytesRd;
-	unsigned char noBytesWr;
-	unsigned short last_error;
-	unsigned short buffer_size;
+	u8 control_out;
+	u8 imaging_clocks_out;
+	u8 noBytesRd;
+	u8 noBytesWr;
+	u16 last_error;
+	u16 buffer_size;
 	char *buffer;
 	struct device *dev;
 	struct parport *port;

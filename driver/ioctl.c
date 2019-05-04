@@ -111,21 +111,20 @@ enum readout_control_bits {
 
 #define K_LPT_READ_AD16(pd, u) do { \
 	/*sbig_outb(pd, AD3_MDI); */ \
-	u = (unsigned short)(sbig_inb(pd) & 0x78) << 9; \
+	u = (u16)(sbig_inb(pd) & 0x78) << 9; \
 	sbig_outb(pd, AD2); \
-	u += (unsigned short)(sbig_inb(pd) & 0x78) << 5; \
+	u += (u16)(sbig_inb(pd) & 0x78) << 5; \
 	sbig_outb(pd, AD1); \
-	u += (unsigned short)(sbig_inb(pd) & 0x78) << 1; \
+	u += (u16)(sbig_inb(pd) & 0x78) << 1; \
 	sbig_outb(pd, AD0); \
-	u += (unsigned short)(sbig_inb(pd) & 0x78) >> 3; \
+	u += (u16)(sbig_inb(pd) & 0x78) >> 3; \
 } while (0)
 
 //========================================================================
 // KLptCameraOut
 // Write data to one of the Camera Registers.
 //========================================================================
-void KLptCameraOut(struct sbig_client *pd, unsigned char reg,
-		   unsigned char val)
+void KLptCameraOut(struct sbig_client *pd, u8 reg, u8 val)
 {
 	sbig_outb(pd, reg + val);
 	sbig_outb(pd, reg + val + 0x80);
@@ -173,7 +172,7 @@ int KLptCameraOutWrapper(struct sbig_client *pd,
 // KLptCameraIn
 // Read data from one of the Camera Registers.
 //========================================================================
-unsigned char KLptCameraIn(struct sbig_client *pd, unsigned char reg)
+u8 KLptCameraIn(struct sbig_client *pd, u8 reg)
 {
 	sbig_outb(pd, reg);
 	return (sbig_inb(pd) >> 3);
@@ -183,9 +182,9 @@ unsigned char KLptCameraIn(struct sbig_client *pd, unsigned char reg)
 // Return TRUE if the next nibble can be sent or received at the
 // microcontroller.
 //========================================================================
-unsigned char KLptMicroStat(struct sbig_client *pd)
+u8 KLptMicroStat(struct sbig_client *pd)
 {
-	unsigned char val;
+	u8 val;
 
 	KLptCameraOut(pd, CONTROL_OUT, (pd->control_out | MICRO_SELECT));
 	val = KLptCameraIn(pd, AD3_MDI);
@@ -198,9 +197,9 @@ unsigned char KLptMicroStat(struct sbig_client *pd)
 // Read the data from the microcontroller and toggle the HSO line.
 // This assumes KLptMicroStat has been called and returned TRUE.
 //========================================================================
-unsigned char KLptMicroIn(struct sbig_client *pd, unsigned char ackIt)
+u8 KLptMicroIn(struct sbig_client *pd, int ackIt)
 {
-	unsigned char val;
+	u8 val;
 
 	KLptCameraOut(pd, CONTROL_OUT, (pd->control_out | MICRO_SELECT));
 	val = KLptCameraIn(pd, AD3_MDI) & 0x0F;
@@ -213,7 +212,7 @@ unsigned char KLptMicroIn(struct sbig_client *pd, unsigned char ackIt)
 // Send data to the microcontroller and toggle the HSO line.
 // This assumes MicroStat has been called and returned TRUE.
 //========================================================================
-void KLptMicroOut(struct sbig_client *pd, unsigned char val)
+void KLptMicroOut(struct sbig_client *pd, u8 val)
 {
 	KLptCameraOut(pd, MICRO_OUT, val);
 	KLptCameraOut(pd, CONTROL_OUT, (pd->control_out ^ HSO));
@@ -234,7 +233,7 @@ int KLptSendMicroBlock(struct sbig_client *pd, unsigned long arg)
 {
 	int status;
 	short i, nibbleLen;
-	unsigned char *p = pd->buffer;
+	u8 *p = pd->buffer;
 	unsigned long t0, delay, nibbleTimeout;
 	struct linux_micro_block lmb;
 
@@ -294,7 +293,7 @@ int KLptGetMicroBlock(struct sbig_client *pd, unsigned long arg)
 {
 	int status;
 	short state, rx_len, cmp_len, packet_len = 0;
-	unsigned char *kbuf = pd->buffer, c;
+	u8 *kbuf = pd->buffer, c;
 	unsigned long t0, delay, nibbleTimeout;
 	struct linux_micro_block lmb;
 
@@ -564,10 +563,10 @@ int KLptRVClockTrackingCCD(struct sbig_client *pd,
 // Clock the Imaging CCD vertically one time.
 //========================================================================
 int KLptVClockImagingCCD(struct sbig_client *pd, enum camera_type cameraID,
-			 unsigned char baseClks, short hClears)
+			 u8 baseClks, short hClears)
 {
 	int status;
-	unsigned char v1_h, v2_h;
+	u8 v1_h, v2_h;
 
 	short vclock_delay =
 		(cameraID == ST1K_CAMERA ? ST1K_VCLOCK_X * VCLOCK_DELAY :
@@ -623,7 +622,7 @@ int KLptBlockClearPixels(struct sbig_client *pd, enum camera_type cameraID,
 {
 	int status;
 	short j, bulk, individual;
-	unsigned char ccd_select;
+	u8 ccd_select;
 
 	ccd_select = (ccd == CCD_IMAGING ? IMAGING_SELECT : TRACKING_SELECT);
 
@@ -720,11 +719,11 @@ int KLptGetPixels(struct sbig_client *pd, unsigned long arg)
 	struct ioc_vclock_ccd_params ivcp;
 	enum camera_type cameraID;
 	enum ccd_request ccd;
-	unsigned short u = 0;
-	unsigned short mask;
-	unsigned char ccd_select;
+	u16 u = 0;
+	u16 mask;
+	u8 ccd_select;
 	short i, left, len, right, horzBin, st237A;
-	unsigned short *kbuf = (unsigned short *)(pd->buffer);
+	u16 *kbuf = (u16 *)(pd->buffer);
 
 	status = copy_from_user(&lgpp,
 				(struct linux_get_pixels_params __user *)arg,
@@ -854,12 +853,12 @@ int KLptGetArea(struct sbig_client *pd, unsigned long arg)
 	struct ioc_vclock_ccd_params ivcp;
 	enum camera_type cameraID;
 	enum ccd_request ccd;
-	unsigned short u = 0;
-	unsigned short mask;
-	unsigned char ccd_select;
+	u16 u = 0;
+	u16 mask;
+	u8 ccd_select;
 	short i, j, left, len, right, horzBin, height;
-	unsigned short *kbuf = (unsigned short *)(pd->buffer);
-	unsigned short *p;
+	u16 *kbuf = (u16 *)(pd->buffer);
+	u16 *p;
 
 	status = copy_from_user(&lgap,
 				(struct linux_get_area_params __user *)arg,
@@ -1008,7 +1007,7 @@ int KLptDumpImagingLines(struct sbig_client *pd, unsigned long arg)
 	short vertBin;
 	short i, j;
 	short dumpRatio;
-	unsigned char ic;
+	u8 ic;
 
 	status = copy_from_user(&dlp,
 				(struct ioc_dump_lines_params __user *)arg,
@@ -1038,9 +1037,8 @@ int KLptDumpImagingLines(struct sbig_client *pd, unsigned long arg)
 
 	for (i = 0; i < len; i++) {
 		// do vertical shift of lines
-		for (j = 0; j < vertBin; j++) {
+		for (j = 0; j < vertBin; j++)
 			KLptVClockImagingCCD(pd, cameraID, (ic | IABG_M), 0);
-		}
 		if ((i % dumpRatio) == dumpRatio - 1 || i >= len - 3) {
 			status = KLptBlockClearPixels(
 				pd, cameraID, CCD_IMAGING,
@@ -1161,11 +1159,11 @@ int KLptDumpST5CLines(struct sbig_client *pd, unsigned long arg)
 int KLptClockAD(struct sbig_client *pd, unsigned long arg)
 {
 	int status;
-	short len;
-	unsigned short u;
+	u16 len;
+	u16 u;
 
 	// get arg value
-	status = get_user(len, (unsigned short __user *)arg);
+	status = get_user(len, (u16 __user *)arg);
 	if (status != 0) {
 		sbig_err(pd, "%s: get_user(): error\n", __func__);
 		return -EFAULT;
@@ -1311,11 +1309,11 @@ int KLptSetBufferSize(struct sbig_client *pd, spinlock_t *lock,
 		      unsigned long arg)
 {
 	int status;
-	unsigned short buffer_size;
-	char *kbuff;
+	u16 buffer_size;
+	u8 *kbuff;
 
-	// get size of the new buffer, ie. read unsigned short
-	status = get_user(buffer_size, (unsigned short __user *)arg);
+	// get size of the new buffer
+	status = get_user(buffer_size, (u16 __user *)arg);
 	if (status != 0) {
 		sbig_err(pd, "%s: get_user(): error\n", __func__);
 		return -EFAULT;
@@ -1384,7 +1382,7 @@ int KLptGetHz(struct sbig_client *pd, unsigned long arg)
 int KSbigLptGetLastError(struct sbig_client *pd, unsigned long arg)
 {
 	int status = put_user(pd->last_error,
-			      (unsigned short __user *)arg);
+			      (u16 __user *)arg);
 	if (status != 0) {
 		sbig_err(pd, "%s: put_user: error\n", __func__);
 		return -EFAULT;
