@@ -232,7 +232,7 @@ void KLptReadyToRx(struct sbig_client *pd)
 int KLptSendMicroBlock(struct sbig_client *pd, unsigned long arg)
 {
 	int status;
-	short i, nibbleLen;
+	int i, nibbleLen;
 	u8 *p = pd->buffer;
 	unsigned long t0, delay, nibbleTimeout;
 	struct linux_micro_block lmb;
@@ -254,7 +254,7 @@ int KLptSendMicroBlock(struct sbig_client *pd, unsigned long arg)
 	}
 
 	// caller passes bytes, we need nibbles
-	nibbleLen = (short)(lmb.length << 1);
+	nibbleLen = lmb.length << 1;
 	t0 = jiffies;
 	KLptCameraOut(pd, CONTROL_OUT, MICRO_SYNC);
 
@@ -291,7 +291,7 @@ int KLptSendMicroBlock(struct sbig_client *pd, unsigned long arg)
 int KLptGetMicroBlock(struct sbig_client *pd, unsigned long arg)
 {
 	int status;
-	short state, rx_len, cmp_len, packet_len = 0;
+	int state, rx_len, cmp_len, packet_len = 0;
 	u8 *kbuf = pd->buffer, c;
 	unsigned long t0, delay, nibbleTimeout;
 	struct linux_micro_block lmb;
@@ -307,7 +307,7 @@ int KLptGetMicroBlock(struct sbig_client *pd, unsigned long arg)
 	}
 
 	state = rx_len = 0;
-	cmp_len = (short)(2 * lmb.length);
+	cmp_len = 2 * lmb.length;
 	t0 = jiffies;
 	KLptReadyToRx(pd);
 
@@ -434,7 +434,7 @@ void KEnable(struct sbig_client *pd)
 // KLptIoDelay
 // Delay a passed number of IO instructions.
 //========================================================================
-void KLptIoDelay(struct sbig_client *pd, short i)
+void KLptIoDelay(struct sbig_client *pd, int i)
 {
 	for (; i > 0; i--)
 		sbig_inb(pd);
@@ -445,7 +445,7 @@ void KLptIoDelay(struct sbig_client *pd, short i)
 //========================================================================
 int KLptWaitForPLD(struct sbig_client *pd)
 {
-	short t0 = 0;
+	int t0 = 0;
 
 	while (1) {
 		if (!(KLptCameraIn(pd, AD0) & CIP))
@@ -461,7 +461,7 @@ int KLptWaitForPLD(struct sbig_client *pd)
 //========================================================================
 int KLptWaitForAD(struct sbig_client *pd)
 {
-	short t0 = 0;
+	int t0 = 0;
 
 	sbig_outb(pd, AD0);
 	while (1) {
@@ -476,7 +476,7 @@ int KLptWaitForAD(struct sbig_client *pd)
 // KLptHClear
 // Clear block of 10 pixels the number of times passed.
 //========================================================================
-int KLptHClear(struct sbig_client *pd, short times)
+int KLptHClear(struct sbig_client *pd, int times)
 {
 	int status;
 
@@ -499,7 +499,7 @@ int KLptHClear(struct sbig_client *pd, short times)
 int KLptRVClockST5CCCD(struct sbig_client *pd,
 		       struct ioc_vclock_ccd_params *pParams)
 {
-	short i, onVertBin = pParams->onVertBin;
+	int i, onVertBin = pParams->onVertBin;
 
 	// no clear of the serial register is required since when not addressing
 	// the CCD the SRG is left low in the low dark current state
@@ -525,7 +525,7 @@ int KLptRVClockST5CCCD(struct sbig_client *pd,
 int KLptRVClockTrackingCCD(struct sbig_client *pd,
 			   struct ioc_vclock_ccd_params *pParams)
 {
-	short i, onVertBin = pParams->onVertBin;
+	int i, onVertBin = pParams->onVertBin;
 
 	// no clear of the serial register is required since when not addressing
 	// the CCD the SRG is left low in the low dark current state
@@ -560,14 +560,12 @@ int KLptRVClockTrackingCCD(struct sbig_client *pd,
 // Clock the Imaging CCD vertically one time.
 //========================================================================
 int KLptVClockImagingCCD(struct sbig_client *pd, enum camera_type cameraID,
-			 u8 baseClks, short hClears)
+			 u8 baseClks, int hClears)
 {
 	int status;
 	u8 v1_h, v2_h;
-
-	short vclock_delay =
-		(cameraID == ST1K_CAMERA ? ST1K_VCLOCK_X * VCLOCK_DELAY :
-					   VCLOCK_DELAY);
+	int vclock_delay = (cameraID == ST1K_CAMERA
+				? ST1K_VCLOCK_X * VCLOCK_DELAY : VCLOCK_DELAY);
 
 	if (cameraID == ST10_CAMERA) {
 		v1_h = V2_H;
@@ -615,10 +613,10 @@ out:
 // groups of CLEAR_BLOCK with the readout PAL then do the remainder.
 //========================================================================
 int KLptBlockClearPixels(struct sbig_client *pd, enum camera_type cameraID,
-			 enum ccd_request ccd, short len, short readoutMode)
+			 enum ccd_request ccd, int len, int readoutMode)
 {
 	int status;
-	short j, bulk, individual;
+	int j, bulk, individual;
 	u8 ccd_select;
 
 	ccd_select = (ccd == CCD_IMAGING ? IMAGING_SELECT : TRACKING_SELECT);
@@ -682,9 +680,9 @@ int KLptRVClockImagingCCD(struct sbig_client *pd,
 {
 	int status;
 	enum camera_type cameraID = pParams->cameraID;
-	short onVertBin = pParams->onVertBin;
-	short clearWidth = pParams->clearWidth;
-	short i;
+	int onVertBin = pParams->onVertBin;
+	int clearWidth = pParams->clearWidth;
+	int i;
 
 	// clear serial register in case an interrupt came along
 	// this needs to be passed incase its the large KAF1600 CCD
@@ -719,7 +717,7 @@ int KLptGetPixels(struct sbig_client *pd, unsigned long arg)
 	u16 u = 0;
 	u16 mask;
 	u8 ccd_select;
-	short i, left, len, right, horzBin, st237A;
+	int i, left, len, right, horzBin, st237A;
 	u16 *kbuf = (u16 *)(pd->buffer);
 
 	status = copy_from_user(&lgpp,
@@ -770,8 +768,7 @@ int KLptGetPixels(struct sbig_client *pd, unsigned long arg)
 		}
 	}
 
-	status = KLptBlockClearPixels(pd, cameraID, ccd, 2,
-				      (short)(horzBin - 1));
+	status = KLptBlockClearPixels(pd, cameraID, ccd, 2, horzBin - 1);
 	if (status != CE_NO_ERROR) {
 		KEnable(pd);
 		return status;
@@ -822,11 +819,9 @@ int KLptGetPixels(struct sbig_client *pd, unsigned long arg)
 
 	// discard unused right pixels
 	if (right != 0) {
-		status = KLptBlockClearPixels(
-			pd, cameraID, ccd,
-			(short)(CLEAR_BLOCK *
-				((right + CLEAR_BLOCK - 1) / CLEAR_BLOCK)),
-			0);
+		status = KLptBlockClearPixels(pd, cameraID, ccd,
+				(CLEAR_BLOCK * ((right + CLEAR_BLOCK - 1)
+				/ CLEAR_BLOCK)), 0);
 	}
 
 	status = copy_to_user(lgpp.dest, pd->buffer, lgpp.length);
@@ -851,7 +846,7 @@ int KLptGetArea(struct sbig_client *pd, unsigned long arg)
 	u16 u = 0;
 	u16 mask;
 	u8 ccd_select;
-	short i, j, left, len, right, horzBin, height;
+	int i, j, left, len, right, horzBin, height;
 	u16 *kbuf = (u16 *)(pd->buffer);
 	u16 *p;
 
@@ -910,7 +905,7 @@ int KLptGetArea(struct sbig_client *pd, unsigned long arg)
 		}
 
 		status = KLptBlockClearPixels(pd, cameraID, ccd, 2,
-					      (short)(horzBin - 1));
+					      horzBin - 1);
 		if (status != CE_NO_ERROR) {
 			KEnable(pd);
 			return status;
@@ -945,7 +940,7 @@ int KLptGetArea(struct sbig_client *pd, unsigned long arg)
 				}
 			}
 			// trigger A/D for next cycle
-			KLptCameraOut(pd, CONTROL_OUT, (ccd_select + AD_TRIGGER));
+			KLptCameraOut(pd, CONTROL_OUT, ccd_select + AD_TRIGGER);
 			KLptCameraOut(pd, CONTROL_OUT, ccd_select);
 			K_LPT_READ_AD16(pd, u);
 			u &= mask;
@@ -962,11 +957,8 @@ int KLptGetArea(struct sbig_client *pd, unsigned long arg)
 		// discard unused right pixels
 		if (right != 0) {
 			status = KLptBlockClearPixels(
-				pd, cameraID, ccd,
-				(short)(CLEAR_BLOCK *
-					((right + CLEAR_BLOCK - 1) /
-					 CLEAR_BLOCK)),
-				0);
+				pd, cameraID, ccd, CLEAR_BLOCK *
+				  ((right + CLEAR_BLOCK - 1) / CLEAR_BLOCK), 0);
 		}
 	}
 
@@ -994,11 +986,11 @@ int KLptDumpImagingLines(struct sbig_client *pd, unsigned long arg)
 	int status;
 	struct ioc_dump_lines_params dlp;
 	enum camera_type cameraID;
-	short width;
-	short len;
-	short vertBin;
-	short i, j;
-	short dumpRatio;
+	int width;
+	int len;
+	int vertBin;
+	int i, j;
+	int dumpRatio;
 	u8 ic;
 
 	status = copy_from_user(&dlp,
@@ -1032,12 +1024,9 @@ int KLptDumpImagingLines(struct sbig_client *pd, unsigned long arg)
 		for (j = 0; j < vertBin; j++)
 			KLptVClockImagingCCD(pd, cameraID, (ic | IABG_M), 0);
 		if ((i % dumpRatio) == dumpRatio - 1 || i >= len - 3) {
-			status = KLptBlockClearPixels(
-				pd, cameraID, CCD_IMAGING,
-				(short)(CLEAR_BLOCK *
-					((width + CLEAR_BLOCK - 1) /
-					 CLEAR_BLOCK)),
-				0);
+			status = KLptBlockClearPixels(pd, cameraID,
+				CCD_IMAGING, CLEAR_BLOCK *
+				((width + CLEAR_BLOCK - 1) / CLEAR_BLOCK), 0);
 			if (status != CE_NO_ERROR)
 				return status;
 		}
@@ -1059,10 +1048,10 @@ int KLptDumpTrackingLines(struct sbig_client *pd, unsigned long arg)
 	int status;
 	struct ioc_dump_lines_params dlp;
 	enum camera_type cameraID;
-	short width;
-	short len;
-	short vertBin;
-	short i;
+	int width;
+	int len;
+	int vertBin;
+	int i;
 
 	status = copy_from_user(&dlp,
 				(struct ioc_dump_lines_params __user *)arg,
@@ -1111,10 +1100,10 @@ int KLptDumpST5CLines(struct sbig_client *pd, unsigned long arg)
 	int status;
 	struct ioc_dump_lines_params dlp;
 	enum camera_type cameraID;
-	short width;
-	short len;
-	short vertBin;
-	short i;
+	int width;
+	int len;
+	int vertBin;
+	int i;
 
 	status = copy_from_user(&dlp,
 				(struct ioc_dump_lines_params __user *)arg,
@@ -1186,9 +1175,9 @@ int KLptClearImagingArray(struct sbig_client *pd, unsigned long arg)
 {
 	int status = CE_NO_ERROR;
 	enum camera_type cameraID;
-	short height;
-	short times;
-	short i;
+	int height;
+	int times;
+	int i;
 	struct ioc_clear_ccd_params cccdp;
 
 	status = copy_from_user(&cccdp,
@@ -1214,8 +1203,7 @@ int KLptClearImagingArray(struct sbig_client *pd, unsigned long arg)
 			return status;
 
 		// do Horizontal Clear of Blocks of 10 Pixels
-		status = KLptHClear(pd,
-				    (short)(cameraID == ST1K_CAMERA ? 6 : 1));
+		status = KLptHClear(pd, cameraID == ST1K_CAMERA ? 6 : 1);
 		if (status != CE_NO_ERROR)
 			return status;
 	}
@@ -1230,9 +1218,9 @@ int KLptClearTrackingArray(struct sbig_client *pd, unsigned long arg)
 {
 	int status = CE_NO_ERROR;
 	enum camera_type cameraID;
-	short height;
-	short times;
-	short i;
+	int height;
+	int times;
+	int i;
 	struct ioc_clear_ccd_params cccdp;
 
 	status = copy_from_user(&cccdp,
