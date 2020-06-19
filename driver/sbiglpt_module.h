@@ -1,4 +1,4 @@
-/* SPDX-License-Identifier: GPL-2.0-or-later */
+/* SPDX-License-Identifier: GPL-2.0-only */
 
 #ifndef _SBIGLPT_MODULE_H
 #define _SBIGLPT_MODULE_H
