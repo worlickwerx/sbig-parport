@@ -1,6 +1,8 @@
-/* SPDX-License-Identifier: UNLICENSED */
+/* SPDX-License-Identifier: GPL-2.0-only */
 
-/* This file defines the user-kernel interface.
+/* Copyright (C) 2002 Diffraction Limited
+ *
+ * This file defines the user-kernel interface.
  * It implements an ABI baked into the closed source
  * SBIG Universal Driver SDK, which is currently the only
  * viable method to access SBIG cameras, even for open

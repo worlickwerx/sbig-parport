@@ -1,12 +1,11 @@
-// SPDX-License-Identifier: UNLICENSED
+// SPDX-License-Identifier: GPL-2.0-only
 
 //========================================================================
 // File name  : ksbiglpt.c
 // Description: Contains the kernel LPT code.
 // Author     : Jan Soldan - Linux
 // Author     : Matt Longmire - Windows
-// Copyright (C) 2002 - 2004 Jan Soldan, Matt Longmire, SBIG
-// All rights reserved.
+// Copyright (C) 2002 Diffraction Limited
 //========================================================================
 
 #include <linux/slab.h>
