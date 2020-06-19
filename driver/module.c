@@ -224,10 +224,7 @@ static void sbig_cleanup_module(void)
 module_init(sbig_init_module);
 module_exit(sbig_cleanup_module);
 
-#ifndef SBIGLPT_LICENSE
-#define SBIGLPT_LICENSE "UNLICENSED"
-#endif
-MODULE_LICENSE(SBIGLPT_LICENSE);
+MODULE_LICENSE("GPL");
 MODULE_VERSION(DRIVER_VERSION_STRING);
 MODULE_AUTHOR("Jan Soldan");
 MODULE_AUTHOR("Matt Longmire");
