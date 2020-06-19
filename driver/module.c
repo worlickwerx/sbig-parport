@@ -35,24 +35,6 @@ static dev_t sbig_dev;
 static struct class *sbig_class;
 static struct cdev sbig_cdev;
 
-#ifdef HAVE_DEVICE_CLASS
-#define sbig_device_create(class, parent, devt, drvdata, fmt, arg...) \
-	device_create((class), (parent), (devt), (drvdata), fmt, ##arg)
-#define sbig_device_destroy(class, devt) \
-	device_destroy((class), (devt))
-#define sbig_class_create(module, name) class_create((module), (name))
-#define sbig_class_destroy(class) class_destroy((class))
-#define sbig_class_iserr(class) IS_ERR((class))
-#define sbig_device_iserr(device) IS_ERR((device))
-#else
-#define sbig_device_create(class, parent, devt, drvdata, fmt, arg...) (NULL)
-#define sbig_device_iserr(device) (0)
-#define sbig_device_destroy(class, devt)
-#define sbig_class_create(module, name) (NULL)
-#define sbig_class_iserr(class) (0)
-#define sbig_class_destroy(class)
-#endif
-
 static int sbig_open(struct inode *inode, struct file *file)
 {
 	unsigned int minor = MINOR(inode->i_rdev);
@@ -135,10 +117,10 @@ static void sbig_attach(struct parport *port)
 		pr_err("%s: parport_claim failed\n", __func__);
 		goto out;
 	}
-	sbig_table[nr].dev = sbig_device_create(sbig_class, port->dev,
-						MKDEV(MAJOR(sbig_dev), nr),
-						NULL, "sbiglpt%d", nr);
-	if (sbig_device_iserr(sbig_table[nr].dev)) {
+	sbig_table[nr].dev = device_create(sbig_class, port->dev,
+					   MKDEV(MAJOR(sbig_dev), nr),
+					   NULL, "sbiglpt%d", nr);
+	if (IS_ERR(sbig_table[nr].dev)) {
 		pr_err("%s: device_create failed\n", __func__);
 		goto out_release;
 	}
@@ -181,8 +163,8 @@ static int sbig_init_module(void)
 		pr_err("%s: alloc_chrdev_region failed\n", __func__);
 		goto out;
 	}
-	sbig_class = sbig_class_create(THIS_MODULE, "sbiglpt");
-	if (sbig_class_iserr(sbig_class)) {
+	sbig_class = class_create(THIS_MODULE, "sbiglpt");
+	if (IS_ERR(sbig_class)) {
 		pr_err("%s: class_create failed\n", __func__);
 		goto out_reg;
 	}
@@ -199,7 +181,7 @@ static int sbig_init_module(void)
 out_cdev:
 	cdev_del(&sbig_cdev);
 out_class:
-	sbig_class_destroy(sbig_class);
+	class_destroy(sbig_class);
 out_reg:
 	unregister_chrdev_region(sbig_dev, SBIG_NO);
 out:
@@ -215,9 +197,9 @@ static void sbig_cleanup_module(void)
 	for (nr = 0; nr < sbig_count; nr++) {
 		parport_release(sbig_table[nr].pardev);
 		parport_unregister_device(sbig_table[nr].pardev);
-		sbig_device_destroy(sbig_class, MKDEV(MAJOR(sbig_dev), nr));
+		device_destroy(sbig_class, MKDEV(MAJOR(sbig_dev), nr));
 	}
-	sbig_class_destroy(sbig_class);
+	class_destroy(sbig_class);
 	unregister_chrdev_region(sbig_dev, SBIG_NO);
 }
 
