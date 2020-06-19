@@ -1,5 +1,9 @@
 /* SPDX-License-Identifier: GPL-2.0-only */
 
+/* Copyright (C) 2017 Jim Garlick
+ * Copyright (C) 2002 Diffraction Limited
+ */
+
 #ifndef _SBIGLPT_MODULE_H
 #define _SBIGLPT_MODULE_H
 

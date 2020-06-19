@@ -2,15 +2,13 @@
 
 /* SBIG astronomy camera parallel port driver main
  *
- * Copyright (c) 2017 by Jim Garlick
+ * Copyright (c) 2017 Jim Garlick
+ * Copyright (c) 2002 Diffraction Limited
  *
  * Don't make assumptions about legacy PC parallel port
  * memory-mapped addresses.  Instead, claim a "parport"
  * device and use its I/O methods, thus allowing the
  * driver to work on non-PC hardware.
- *
- * N.B. This is a complete rewrite of the original sbiglpt
- * driver main by Jan Soldan (c) 2002-2003.
  */
 
 #include <linux/module.h>
