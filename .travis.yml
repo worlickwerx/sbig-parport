@@ -10,8 +10,8 @@ addons:
     sources:
     packages:
       - libelf-dev
-      - linux-headers-3.13.0-100-generic
+      - linux-headers-4.4.0-184-generic
 
 script:
  - make -C driver check
- - KERNEL_VERSION=3.13.0-100-generic make -C driver
+ - KERNEL_VERSION=4.4.0-184-generic make -C driver
