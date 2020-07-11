@@ -18,12 +18,6 @@ See also: [project wiki](https://github.com/garlick/sbig-parport/wiki)
 
 Note: this driver is no longer supported by SBIG/DL.
 
-### Origin and License
+### License
 
-This driver was made available for download on the SBIG web site for many
-years, but no explicit license was granted by the copyright holders.
-
-The bulk of the code appears to have originally been ported from the Windows
-environment.
-
-SPDX-License-Identifier: UNLICENSED
+SPDX-License-Identifier: GPL-2.0-only
