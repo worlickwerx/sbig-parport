@@ -94,6 +94,7 @@ static long sbig_unlocked_ioctl(struct file *file,
 
 static void sbig_attach(struct parport *port)
 {
+	struct pardev_cb ppdev_cb;
 	int nr = 0 + sbig_count;
 
 	if (!(port->modes & PARPORT_MODE_PCSPP)) {
@@ -106,9 +107,10 @@ static void sbig_attach(struct parport *port)
 			__func__, port->name, SBIG_NO);
 		return;
 	}
-	sbig_table[nr].pardev = parport_register_device(port, "sbiglpt",
-							NULL, NULL, NULL,
-							PARPORT_DEV_EXCL, NULL);
+	memset(&ppdev_cb, 0, sizeof(ppdev_cb));
+	ppdev_cb.private = &sbig_table[nr];
+	sbig_table[nr].pardev = parport_register_dev_model(port, "sbiglpt",
+							   &ppdev_cb, nr);
 	if (sbig_table[nr].pardev == NULL) {
 		pr_err("%s: parport_register_device failed\n", __func__);
 		return;
@@ -146,8 +148,9 @@ static void sbig_detach(struct parport *port)
 
 static struct parport_driver sbig_driver = {
 	.name = "sbiglpt",
-	.attach = sbig_attach,
+	.match_port = sbig_attach,
 	.detach = sbig_detach,
+	.devmodel = true,
 };
 
 static const struct file_operations sbig_fops = {
