@@ -1,0 +1,5 @@
+jobs:
+  dummyjob:
+    runs-on: ubuntu-latest
+    steps:
+    - run: /bin/true
