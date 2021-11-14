@@ -53,3 +53,31 @@ jobs:
         fetch-depth: 0
     - name: build driver
       run: KERNEL_VERSION=4.15.0-106-generic make -C driver
+
+  build-load-latest:
+    name: build and load driver against running kernel
+    runs-on: ubuntu-latest
+    steps:
+    - name: install libelf-dev
+      run: sudo apt-get -y install libelf-dev
+    - name: install linux-headers
+      run: sudo apt-get install linux-headers-$(uname -r)
+    - uses: actions/checkout@v2
+      with:
+        ref: ${{ github.event.pull_request.head.sha }}
+        fetch-depth: 0
+    - name: build driver
+      run: make -C driver
+    - name: clear kernel log messages
+      run: sudo dmesg --clear
+    - name: load dependent kernel modules
+      run: sudo modprobe parport
+    - name: load driver
+      run: sudo insmod driver/sbiglpt.ko \
+    - name: print kernel log messages
+      if: always()
+      run: sudo dmesg
+    - name: unload kernel modules
+      if: always()
+      run: sudo rmmod sbiglpt parport
+
