@@ -10,7 +10,8 @@ sbiglpt-y = \
 all: modules
 
 modules clean:
-	make -C $(KERNEL_PATH) M=$(shell pwd) $@
+	make -C $(KERNEL_PATH) M=$(shell pwd) \
+		KBUILD_EXTRA_SYMBOLS=$(KBUILD_EXTRA_SYMBOLS) $@
 
 check:
 	scripts/checkpatch.pl --no-tree -f --ignore=LINUX_VERSION_CODE \
